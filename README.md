@@ -1,5 +1,3 @@
-# Shell Defaults
-Easily set shell defaults
+# dotfiles
+Usage: `make install`
 
-## How to use
-`./setup.py`
