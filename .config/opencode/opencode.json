@@ -42,6 +42,34 @@
         "FASTMCP_LOG_LEVEL": "ERROR",
         "AWS_DOCUMENTATION_PARTITION": "aws"
       }
+    },
+    "mcp-optional-github": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer {env:GITHUB_TOKEN}"
+      }
+    },
+    "mcp-optional-grafana": {
+      "type": "local",
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "GRAFANA_URL=https://hatchengineering.grafana.net",
+        "-e",
+        "GRAFANA_TOKEN",
+        "docker.io/mcp/grafana:latest",
+        "-t",
+        "stdio"
+      ],
+      "enabled": true,
+      "environment": {
+        "GRAFANA_TOKEN": "{env:GRAFANA_TOKEN}"
+      }
     }
   },
   "$schema": "https://opencode.ai/config.json"
