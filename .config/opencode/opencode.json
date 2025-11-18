@@ -1,0 +1,48 @@
+{
+  "mcp": {
+    "mcp-optional-linear": {
+      "type": "local",
+      "command": [
+        "bunx",
+        "mcp-remote",
+        "https://mcp.linear.app/sse"
+      ],
+      "enabled": true
+    },
+    "mcp-optional-notion": {
+      "type": "local",
+      "command": [
+        "bunx",
+        "mcp-remote",
+        "https://mcp.notion.com/mcp"
+      ],
+      "enabled": true
+    },
+    "mcp-optional-aws-api-staging": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "awslabs.aws-api-mcp-server@latest"
+      ],
+      "enabled": true,
+      "environment": {
+        "READ_OPERATIONS_ONLY": "true",
+        "AWS_REGION": "us-east-2",
+        "AWS_API_MCP_PROFILE_NAME": "staging"
+      }
+    },
+    "mcp-optional-aws-doc": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "awslabs.aws-documentation-mcp-server@latest"
+      ],
+      "enabled": true,
+      "environment": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_DOCUMENTATION_PARTITION": "aws"
+      }
+    }
+  },
+  "$schema": "https://opencode.ai/config.json"
+}
