@@ -28,9 +28,11 @@ install:
 		echo "Changing font size for alacritty";\
 		${SED} -i s/12/16/g ~/.config/alacritty.toml;\
 	fi
-	@echo "Adding GitHub MCP Token to .zprofile"
+	@echo "Adding GitHub MCP Token to .bash_profile and .zprofile"
+	@echo "export GITHUB_TOKEN=${GITHUB_MCP_TOKEN}" >>$(HOME)/.bash_profile
 	@echo "export GITHUB_TOKEN=${GITHUB_MCP_TOKEN}" >>$(HOME)/.zprofile
-	@echo "Adding Grafana MCP Token to .zprofile"
+	@echo "Adding Grafana MCP Token to .bash_profile and .zprofile"
+	@echo "export GRAFANA_TOKEN=${GRAFANA_MCP_TOKEN}" >>$(HOME)/.bash_profile
 	@echo "export GRAFANA_TOKEN=${GRAFANA_MCP_TOKEN}" >>$(HOME)/.zprofile
 	@echo "Dotfiles installation complete."
 
