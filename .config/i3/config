@@ -33,6 +33,7 @@ exec --no-startup-id dex-autostart --autostart --environment i3
 
 # The combination of xss-lock, nm-applet and pactl is a popular choice, so
 # they are included here as an example. Modify as you see fit.
+exec --no-startup-id /usr/bin/flameshot
 exec --no-startup-id /usr/bin/slack -u
 exec --no-startup-id /usr/bin/Discord --start-minimized
 exec --no-startup-id /usr/bin/xfce4-power-manager
