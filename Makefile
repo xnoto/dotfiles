@@ -3,7 +3,7 @@ FIND              := $(shell which gfind 2>/dev/null || which find)
 SED               := $(shell which  gsed 2>/dev/null || which sed)
 DOTFILES          := $(shell ${FIND} . -maxdepth 1 ! -name '.' ! -name 'README.md' ! -name 'LICENSE' ! -name 'Makefile' ! -path './.git' ! -path './secrets' -printf '%f\n')
 MACOS             := $(shell uname -s | grep Darwin >/dev/null 2>&1 && echo true || echo false)
-GITHUB_MCP_TOKEN  := $(shell sops decrypt secrets/secrets.yaml | grep ^github_mcp_token | cut -d ' ' -f 2)
+GITHUB_MCP_TOKEN  := $(shell sops decrypt secrets/secrets.yaml | grep ^github_mcp_token  | cut -d ' ' -f 2)
 GRAFANA_MCP_TOKEN := $(shell sops decrypt secrets/secrets.yaml | grep ^grafana_mcp_token | cut -d ' ' -f 2)
 
 .PHONY: help install
