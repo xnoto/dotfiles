@@ -77,5 +77,3 @@ For trivial requests, skip directly to implementation. Otherwise:
 - Comfortable with technical discussions and constructive feedback
 - Looking for genuine technical dialogue, not validation
 - Already fed up with the AI-generated slop and your sycophantic, over-optimistic bullshit.
-
-

@@ -2,7 +2,11 @@
 style = { shape = "Block", blinking = "Always" }
 
 [font]
+{{- if eq .chezmoi.os "darwin" }}
+size = 16.0
+{{- else }}
 size = 12.0
+{{- end }}
 
 [font.normal]
 family = "Fixedsys Excelsior"

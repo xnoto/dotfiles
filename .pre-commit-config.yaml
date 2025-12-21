@@ -1,0 +1,39 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        files: ^dot_bashrc\.d/
+        exclude: \.tmpl$
+        types: [file]
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.1.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+  - repo: local
+    hooks:
+      - id: chezmoi-templates
+        name: Validate chezmoi templates (syntax only)
+        entry: "bash -c 'for f in \"$@\"; do grep -q \"decrypt\" \"$f\" && continue; chezmoi execute-template < \"$f\" > /dev/null 2>&1 || { echo \"Template error in $f\"; exit 1; }; done' --"
+        language: system
+        files: \.tmpl$
+        pass_filenames: true
+
+      - id: chezmoi-doctor
+        name: Run chezmoi doctor
+        entry: "bash -c 'chezmoi doctor --no-network --source=$(pwd) || true'"
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
