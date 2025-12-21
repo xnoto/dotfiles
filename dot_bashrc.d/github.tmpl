@@ -1,1 +1,1 @@
-export GITHUB_TOKEN={{ (index (fromYaml (decrypt "encrypted_secrets.yaml.age")) "github_mcp_token") | quote }}
+export GITHUB_TOKEN={{ (index (fromYaml (include "encrypted_secrets.yaml.age" | decrypt)) "github_mcp_token") | quote }}
