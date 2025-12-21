@@ -1,4 +1,5 @@
 .PHONY: install
 
 install:
-	chezmoi init --source=$(PWD) --apply
+	chezmoi init --source=$(PWD)
+	chezmoi apply --source=$(PWD)
