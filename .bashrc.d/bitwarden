@@ -1,4 +1,0 @@
-if [[ "$DISPLAY" == ":0" && -f /usr/bin/bitwarden ]]
-then
-	export SSH_AUTH_SOCK=${HOME}/.bitwarden-ssh-agent.sock
-fi
