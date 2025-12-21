@@ -1,0 +1,19 @@
+# Ignore Linux-specific files on macOS
+{{- if eq .chezmoi.os "darwin" }}
+.config/i3
+.config/i3/**
+.bashrc.d
+.bashrc.d/**
+{{- end }}
+
+# Ignore macOS-specific files on Linux
+{{- if eq .chezmoi.os "linux" }}
+.zprofile
+{{- end }}
+
+# Always ignore these
+README.md
+LICENSE
+Makefile
+secrets/
+.sops.yaml
