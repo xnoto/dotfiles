@@ -1,0 +1,7 @@
+bindkey -v
+eval "$(/opt/homebrew/bin/brew shellenv)"
+export SSH_AUTH_SOCK=${HOME}/.bitwarden-ssh-agent.sock
+export NODE_OPTIONS='--max-old-space-size=6144'
+{{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
+export GITHUB_TOKEN={{ index $secrets "github_mcp_token" | quote }}
+export GRAFANA_TOKEN={{ index $secrets "grafana_mcp_token" | quote }}
