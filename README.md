@@ -12,11 +12,11 @@ Managed with [chezmoi](https://www.chezmoi.io/).
 ## Usage
 
 ```bash
-# First-time setup (clone and apply)
-chezmoi init --source=/path/to/this/repo --apply
+# First-time setup after cloning
+make
 
-# Or if using as the source directory directly
-chezmoi init --apply
+# Or equivalently
+chezmoi init --source=/path/to/this/repo --apply
 
 # Preview changes
 chezmoi diff
