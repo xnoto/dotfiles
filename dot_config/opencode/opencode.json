@@ -74,6 +74,15 @@
       "environment": {
         "GRAFANA_SERVICE_ACCOUNT_TOKEN": "{env:GRAFANA_TOKEN}"
       }
+    },
+    "mcp-optional-kubernetes": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "kubernetes-mcp-server@latest"
+      ],
+      "enabled": false
     }
   }
 }
