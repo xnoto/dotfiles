@@ -3,11 +3,13 @@
   "autoupdate": true,
   "model": "copilot/claude-opus-4-5",
   "small_model": "anthropic/claude-3-5-haiku-20241022",
+{{- if eq .chezmoi.os "linux" }}
   "lsp": {
     "bash": {
       "command": ["bash-language-server", "start", "--noBgAnalysis"]
     }
   },
+{{- end }}
   "mcp": {
     "mcp-optional-linear": {
       "type": "local",
