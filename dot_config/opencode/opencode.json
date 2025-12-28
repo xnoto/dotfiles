@@ -3,6 +3,11 @@
   "autoupdate": true,
   "model": "copilot/claude-opus-4-5",
   "small_model": "anthropic/claude-3-5-haiku-20241022",
+  "lsp": {
+    "bash": {
+      "args": ["start", "--noBgAnalysis"]
+    }
+  },
   "mcp": {
     "mcp-optional-linear": {
       "type": "local",
