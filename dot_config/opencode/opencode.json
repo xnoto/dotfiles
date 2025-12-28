@@ -5,7 +5,7 @@
   "small_model": "anthropic/claude-3-5-haiku-20241022",
   "lsp": {
     "bash": {
-      "args": ["start", "--noBgAnalysis"]
+      "command": ["bash-language-server", "start", "--noBgAnalysis"]
     }
   },
   "mcp": {
