@@ -50,6 +50,23 @@ For trivial requests, skip directly to implementation. Otherwise:
 - If you discover an unforeseen issue, stop and discuss
 - Note concerns inline if you see them during implementation
 
+## Git Commit Standards
+
+All commit messages MUST follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification:
+
+- Format: `<type>: <description>`
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+- Description: lowercase, imperative mood, no period at end
+- Breaking changes: append `!` after type (e.g., `feat!: remove deprecated API`)
+
+Examples:
+- `feat: add user authentication`
+- `fix: handle null response from upstream`
+- `refactor: extract validation logic to helper`
+- `chore: update dependencies`
+
+PR titles should also follow conventional commit format.
+
 ## What NOT to do
 
 - Don't jump to implementation without discussing approach
