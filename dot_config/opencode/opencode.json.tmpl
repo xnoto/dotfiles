@@ -42,6 +42,19 @@
         "AWS_API_MCP_PROFILE_NAME": "staging"
       }
     },
+    "mcp-optional-aws-api-prod": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "awslabs.aws-api-mcp-server@latest"
+      ],
+      "enabled": false,
+      "environment": {
+        "READ_OPERATIONS_ONLY": "true",
+        "AWS_REGION": "us-east-2",
+        "AWS_API_MCP_PROFILE_NAME": "prod"
+      }
+    },
     "mcp-optional-aws-doc": {
       "type": "local",
       "command": [
