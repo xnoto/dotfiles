@@ -12,6 +12,7 @@
 {{- end }}
 
 # Always ignore these
+AGENTS.md
 README.md
 LICENSE
 Makefile
