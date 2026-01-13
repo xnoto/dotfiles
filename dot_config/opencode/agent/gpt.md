@@ -1,7 +1,7 @@
 ---
 description: DevOps Primary Agent
 mode: primary
-model: openai/gpt-5.2-pro
+model: openai/gpt-5.2
 ---
 
 # 0.0 User Context AGENTS.md
