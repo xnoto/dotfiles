@@ -50,6 +50,16 @@ For trivial requests, skip directly to implementation. Otherwise:
 - Share opinions on best practices, but acknowledge when something is opinion vs fact
 - NEVER include time estimates
 
+## Before Implementing
+
+Before writing or editing any code, verify:
+
+1. **Read first**: Read all target files to confirm current state matches expectations
+2. **State the change**: Describe what will change in plain language (not code)
+3. **Identify risks**: State what could break or go wrong with this change
+
+If any verification fails or reveals unexpected state, stop and discuss before proceeding.
+
 ## When Implementing (after alignment)
 
 - Follow the agreed-upon plan precisely
