@@ -1,6 +1,17 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
+  "provider": {
+    "openai": {
+      "models": {
+        "gpt-5.2": {
+          "options": {
+            "include": ["reasoning.encrypted_content"]
+          }
+        }
+      }
+    }
+  },
 {{- if eq .chezmoi.os "linux" }}
   "lsp": {
     "bash": {

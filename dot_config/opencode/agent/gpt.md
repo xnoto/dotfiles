@@ -2,6 +2,10 @@
 description: DevOps Primary Agent
 mode: primary
 model: openai/gpt-5.2
+options:
+  store: false
+  include:
+    - reasoning.encrypted_content
 ---
 
 # 0.0 User Context AGENTS.md
