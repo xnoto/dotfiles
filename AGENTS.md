@@ -82,16 +82,6 @@ chore: update pre-commit hooks
 
 Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
 
-## Agent Permissions
-
-**This is a planning agent. Permissions are non-negotiable.**
-
-Agent configuration files in `dot_config/opencode/agent/` define permissions:
-- `bash: ask` - must prompt before executing commands
-- `edit: ask` - must prompt before modifying files
-
-**Agents MUST NOT violate their configured permissions.** Planning agents plan. They do not execute without explicit approval.
-
 ## CI
 
 GitHub Actions (`.github/workflows/lint.yaml`) runs pre-commit on:
