@@ -1,7 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
-  "default_agents": false,
 {{- if eq .chezmoi.os "linux" }}
   "lsp": {
     "bash": {
@@ -9,6 +8,14 @@
     }
   },
 {{- end }}
+  "agent": {
+    "plan": {
+      "disable": true
+    },
+    "build": {
+      "disable": true
+    }
+  },
   "mcp": {
     "mcp-optional-linear": {
       "type": "local",
