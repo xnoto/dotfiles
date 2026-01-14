@@ -119,12 +119,12 @@ def create_thread(msg: dict) -> dict:
     """Create a new thread from a message."""
     thread_id = msg.get("threadId") or str(uuid.uuid4())[:12]
     now = int(time.time() * 1000)
-    
+
     participants = {msg.get("from", "unknown")}
     to = msg.get("to", "")
     if to and to != "all":
         participants.add(to)
-    
+
     thread = {
         "id": thread_id,
         "createdBy": msg.get("from", "unknown"),
@@ -154,12 +154,12 @@ def resolve_thread(thread_id: str, resolved_by: str) -> None:
     thread = load_thread(thread_id)
     if not thread:
         return
-    
+
     thread["status"] = "resolved"
     thread["resolvedBy"] = resolved_by
     thread["resolvedAt"] = int(time.time() * 1000)
     save_thread(thread)
-    
+
     # Archive all messages in this thread
     archive_thread_messages(thread_id)
     log.info(f"Thread {thread_id} resolved by {resolved_by}")
@@ -196,7 +196,7 @@ def ensure_thread_id(msg: dict, msg_path: Path) -> str:
         # Rewrite the message file with threadId
         msg_path.write_text(json.dumps(msg, indent=2))
         log.debug(f"Auto-assigned threadId {thread_id} to message {msg_path.name}")
-    
+
     return msg.get("threadId", "")
 
 
@@ -204,28 +204,28 @@ def check_thread_resolution(msg: dict) -> bool:
     """Check if message resolves a thread. Returns True if resolved."""
     if msg.get("type") != "completion":
         return False
-    
+
     content = msg.get("content", "").upper()
     if "RESOLVED" not in content:
         return False
-    
+
     thread_id = msg.get("threadId")
     if not thread_id:
         return False
-    
+
     thread = load_thread(thread_id)
     if not thread:
         return False
-    
+
     # Check if sender is the thread owner (creator) or it's a broadcast thread
     sender = msg.get("from", "")
     is_owner = thread.get("createdBy") == sender
     is_broadcast = msg.get("to") == "all" or thread.get("createdBy") == "all"
-    
+
     if is_owner or is_broadcast:
         resolve_thread(thread_id, sender)
         return True
-    
+
     return False
 
 
@@ -237,7 +237,7 @@ def run_gc(agents: dict[str, dict]) -> None:
     """Run garbage collection on messages, threads, and stale agents."""
     now_ms = int(time.time() * 1000)
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     # 1. Remove stale agents (>1hr since lastSeen)
     if AGENTS_DIR.exists():
         for agent_path in AGENTS_DIR.glob("*.json"):
@@ -254,7 +254,7 @@ def run_gc(agents: dict[str, dict]) -> None:
             except (json.JSONDecodeError, OSError) as e:
                 log.warning(f"Failed to check agent {agent_path}: {e}")
                 continue
-    
+
     # 2. Archive expired messages (>1hr old)
     for msg_path in MESSAGES_DIR.glob("*.json"):
         try:
@@ -267,17 +267,17 @@ def run_gc(agents: dict[str, dict]) -> None:
                 log.debug(f"Archived expired message {msg_path.name} (age: {age_ms/1000:.0f}s)")
         except (json.JSONDecodeError, OSError):
             continue
-    
+
     # 3. Check threads with all stale participants
     if not THREADS_DIR.exists():
         return
-    
+
     for thread_path in THREADS_DIR.glob("*.json"):
         try:
             thread = json.loads(thread_path.read_text())
             if thread.get("status") == "resolved":
                 continue
-            
+
             participants = thread.get("participants", [])
             all_stale = True
             for participant_id in participants:
@@ -285,7 +285,7 @@ def run_gc(agents: dict[str, dict]) -> None:
                 if agent and is_agent_active(agent):
                     all_stale = False
                     break
-            
+
             if all_stale and participants:
                 log.info(f"Thread {thread['id']} expired (all participants stale)")
                 thread["status"] = "expired"
@@ -456,7 +456,7 @@ def process_message_file(path: Path, agents: dict[str, dict]) -> None:
 
     # Ensure message has a threadId
     ensure_thread_id(msg, path)
-    
+
     # Check if this message resolves a thread
     if check_thread_resolution(msg):
         return  # Thread resolved, messages archived
