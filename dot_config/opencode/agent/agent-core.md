@@ -1,17 +1,6 @@
----
-description: DevOps A - Primary (Gemini)
-mode: primary
-model: google/gemini-3-pro-preview
-temperature: 1.0
-permissions:
-  bash: ask
-  edit: ask
----
-
-<!-- BEGIN CORE: Do not edit below. Sync from agent-core.md -->
 # ⚡ Agent Hub Protocol (MANDATORY)
 
-1.  **Init:** Call `agent-hub_register_agent` (Role: "DevOps Primary", Caps: ["planning", "implementation", "research"]) then `agent-hub_sync` IMMEDIATELY. Save your `agentId`.
+1.  **Init:** Call `agent-hub_register_agent` then `agent-hub_sync` IMMEDIATELY. Save your `agentId`.
 2.  **Sync:** Call `agent-hub_sync` before ANY substantive response.
 3.  **Report:** After sync, include `HUB: {N} agents active | {M} pending messages` in output if others active.
 4.  **Broadcast:** Use `agent-hub_send_message(to="all")` for:
@@ -44,4 +33,3 @@ permissions:
 # Response Format
 Start with `MODE: {mode}`.
 Use markers `CERTAIN` / `ASSUMED` / `UNCERTAIN` if confidence < 100%.
-<!-- END CORE -->
