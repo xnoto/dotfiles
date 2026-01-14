@@ -26,6 +26,7 @@ Thread lifecycle:
 - Thread resolved when owner sends type="completion" with "RESOLVED" in content
 - Threads expire when all participants are stale (>1hr lastSeen)
 - Messages expire after 1 hour regardless
+- Stale agents (>1hr lastSeen) are removed automatically
 
 Idle detection: session is idle if last message role is "assistant"
 """
@@ -233,11 +234,28 @@ def check_thread_resolution(msg: dict) -> bool:
 # =============================================================================
 
 def run_gc(agents: dict[str, dict]) -> None:
-    """Run garbage collection on messages and threads."""
+    """Run garbage collection on messages, threads, and stale agents."""
     now_ms = int(time.time() * 1000)
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
     
-    # 1. Archive expired messages (>1hr old)
+    # 1. Remove stale agents (>1hr since lastSeen)
+    if AGENTS_DIR.exists():
+        for agent_path in AGENTS_DIR.glob("*.json"):
+            try:
+                agent = json.loads(agent_path.read_text())
+                last_seen = agent.get("lastSeen", 0)
+                age_ms = now_ms - last_seen
+                if age_ms > AGENT_STALE_SECONDS * 1000:
+                    agent_id = agent.get("id", agent_path.stem)
+                    agent_path.unlink()
+                    # Remove from in-memory cache too
+                    agents.pop(agent_id, None)
+                    log.info(f"Removed stale agent {agent_id} (age: {age_ms/1000/60:.0f}m)")
+            except (json.JSONDecodeError, OSError) as e:
+                log.warning(f"Failed to check agent {agent_path}: {e}")
+                continue
+    
+    # 2. Archive expired messages (>1hr old)
     for msg_path in MESSAGES_DIR.glob("*.json"):
         try:
             msg = json.loads(msg_path.read_text())
@@ -250,7 +268,7 @@ def run_gc(agents: dict[str, dict]) -> None:
         except (json.JSONDecodeError, OSError):
             continue
     
-    # 2. Check threads with all stale participants
+    # 3. Check threads with all stale participants
     if not THREADS_DIR.exists():
         return
     
