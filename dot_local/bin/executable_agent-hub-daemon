@@ -46,12 +46,15 @@ Thread lifecycle:
 import json
 import logging
 import os
+import queue
 import shutil
 import signal
 import subprocess
 import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -77,9 +80,36 @@ MESSAGE_TTL_SECONDS = 3600  # 1 hour
 AGENT_STALE_SECONDS = 3600  # 1 hour
 GC_INTERVAL_SECONDS = 60    # Run GC every 60 seconds
 SESSION_POLL_SECONDS = 5    # Poll for new active sessions every 5 seconds
+SESSION_CACHE_TTL = 10      # Cache sessions for 10 seconds
+INJECTION_WORKERS = 4       # Concurrent injection workers
+INJECTION_RETRIES = 3       # Retry failed injections
+INJECTION_TIMEOUT = 5       # Shorter timeout for injections
 
 # Track sessions that have been oriented (session_id -> True)
 ORIENTED_SESSIONS: set[str] = set()
+
+# Session cache (avoids repeated API calls)
+_sessions_cache: list[dict] = []
+_sessions_cache_time: float = 0
+_sessions_cache_lock = threading.Lock()
+
+# Work queues (non-blocking handlers)
+@dataclass
+class InjectionTask:
+    session_id: str
+    text: str
+
+@dataclass 
+class MessageTask:
+    path: Path
+
+@dataclass
+class SessionTask:
+    path: Path
+
+_injection_queue: queue.Queue[InjectionTask] = queue.Queue()
+_message_queue: queue.Queue[MessageTask] = queue.Queue()
+_session_queue: queue.Queue[SessionTask] = queue.Queue()
 
 
 def load_oriented_sessions() -> set[str]:
@@ -103,6 +133,33 @@ def save_oriented_sessions() -> None:
         ORIENTED_SESSIONS_FILE.write_text(json.dumps(list(ORIENTED_SESSIONS)))
     except OSError as e:
         log.warning(f"Failed to save oriented sessions: {e}")
+
+
+def bootstrap_oriented_sessions(agents: dict[str, dict]) -> None:
+    """Mark sessions that already have matching agents as oriented.
+    
+    This prevents re-orienting sessions that were already set up.
+    Sessions WITHOUT a matching agent are left for the poller to auto-register.
+    """
+    global ORIENTED_SESSIONS
+    sessions = get_sessions()
+    if not sessions:
+        return
+    
+    initial_count = len(ORIENTED_SESSIONS)
+    for session in sessions:
+        session_id = session.get("id", "")
+        directory = session.get("directory", "")
+        if not session_id or not directory:
+            continue
+        # Only bootstrap if agent already exists for this directory
+        if find_agent_for_directory(directory, agents):
+            ORIENTED_SESSIONS.add(session_id)
+    
+    added = len(ORIENTED_SESSIONS) - initial_count
+    if added > 0:
+        save_oriented_sessions()
+        log.info(f"Bootstrapped {added} existing sessions (with agents) as already oriented")
 
 # Hub server process (launched by daemon if needed)
 HUB_SERVER_PROCESS: Optional[subprocess.Popen] = None
@@ -281,10 +338,50 @@ def check_thread_resolution(msg: dict) -> bool:
 # Garbage Collection
 # =============================================================================
 
+def gc_oriented_sessions() -> None:
+    """Remove oriented session IDs for sessions inactive for >1 hour.
+    
+    This allows re-orientation when a user returns to an old session,
+    and prevents the cache from growing unbounded.
+    """
+    global ORIENTED_SESSIONS
+    
+    if not ORIENTED_SESSIONS:
+        return
+    
+    # Get current sessions from API
+    current_sessions = get_sessions()
+    if not current_sessions:
+        return  # Don't clear on API failure
+    
+    now_ms = int(time.time() * 1000)
+    stale_threshold_ms = MESSAGE_TTL_SECONDS * 1000  # 1 hour
+    
+    # Build set of recently active session IDs
+    active_ids = set()
+    for s in current_sessions:
+        session_id = s.get("id", "")
+        if not session_id:
+            continue
+        updated = s.get("time", {}).get("updated", 0)
+        if now_ms - updated < stale_threshold_ms:
+            active_ids.add(session_id)
+    
+    # Keep only recently active sessions in oriented cache
+    stale = ORIENTED_SESSIONS - active_ids
+    if stale:
+        ORIENTED_SESSIONS -= stale
+        save_oriented_sessions()
+        log.info(f"GC: Removed {len(stale)} inactive oriented sessions, {len(ORIENTED_SESSIONS)} remaining")
+
+
 def run_gc(agents: dict[str, dict]) -> None:
-    """Run garbage collection on messages, threads, and stale agents."""
+    """Run garbage collection on messages, threads, stale agents, and oriented sessions."""
     now_ms = int(time.time() * 1000)
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+
+    # 0. Clean up oriented sessions - keep only sessions that still exist in API
+    gc_oriented_sessions()
 
     # 1. Remove stale agents (>1hr since lastSeen)
     if AGENTS_DIR.exists():
@@ -428,8 +525,8 @@ def stop_hub_server() -> None:
 # OpenCode Integration
 # =============================================================================
 
-def get_sessions() -> list[dict]:
-    """Fetch active OpenCode sessions."""
+def get_sessions_uncached() -> list[dict]:
+    """Fetch active OpenCode sessions (direct API call)."""
     try:
         resp = requests.get(f"{OPENCODE_URL}/session", timeout=5)
         resp.raise_for_status()
@@ -439,39 +536,133 @@ def get_sessions() -> list[dict]:
         return []
 
 
-def find_sessions_for_agent(agent: dict, sessions: list[dict]) -> list[dict]:
-    """Match agent to ALL sessions by projectPath == directory.
+def get_sessions() -> list[dict]:
+    """Fetch sessions with caching to avoid repeated API calls."""
+    global _sessions_cache, _sessions_cache_time
     
-    Returns all matching sessions to support multiple sessions in same project.
+    now = time.time()
+    with _sessions_cache_lock:
+        if now - _sessions_cache_time < SESSION_CACHE_TTL and _sessions_cache:
+            return _sessions_cache
+        
+        # Cache miss or expired
+        sessions = get_sessions_uncached()
+        if sessions:  # Only update cache on success
+            _sessions_cache = sessions
+            _sessions_cache_time = now
+        return sessions
+
+
+def invalidate_session_cache() -> None:
+    """Force cache refresh on next get_sessions() call."""
+    global _sessions_cache_time
+    with _sessions_cache_lock:
+        _sessions_cache_time = 0
+
+
+def find_sessions_for_agent(agent: dict, sessions: list[dict]) -> list[dict]:
+    """Find the most recent session for an agent's projectPath.
+    
+    Only returns the single most recently updated session to avoid
+    spamming historical sessions with messages.
     """
     agent_path = agent.get("projectPath", "")
-    return [s for s in sessions if s.get("directory") == agent_path]
+    matching = [s for s in sessions if s.get("directory") == agent_path]
+    if not matching:
+        return []
+    
+    # Return only the most recently updated session
+    matching.sort(key=lambda s: s.get("time", {}).get("updated", 0), reverse=True)
+    return [matching[0]]
 
 
 
-
-
-def inject_message(session_id: str, text: str) -> bool:
-    """Inject message into OpenCode session. Always wakes (noReply: false)."""
+def inject_message_sync(session_id: str, text: str) -> bool:
+    """Inject message into OpenCode session (synchronous, with retries)."""
     payload = {
         "parts": [{"type": "text", "text": text}],
         "noReply": False,  # Always wake - daemon controls coordination
     }
-    try:
-        resp = requests.post(
-            f"{OPENCODE_URL}/session/{session_id}/message",
-            json=payload,
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            log.info(f"Injected message into session {session_id[:8]}...")
-            return True
-        else:
-            log.error(f"Injection failed: {resp.status_code} {resp.text}")
-            return False
-    except requests.RequestException as e:
-        log.error(f"Injection request failed: {e}")
-        return False
+    
+    for attempt in range(INJECTION_RETRIES):
+        try:
+            resp = requests.post(
+                f"{OPENCODE_URL}/session/{session_id}/message",
+                json=payload,
+                timeout=INJECTION_TIMEOUT,
+            )
+            if resp.status_code == 200:
+                log.info(f"Injected message into session {session_id[:8]}...")
+                return True
+            else:
+                log.warning(f"Injection attempt {attempt+1} failed: {resp.status_code}")
+        except requests.RequestException as e:
+            log.warning(f"Injection attempt {attempt+1} failed: {e}")
+        
+        if attempt < INJECTION_RETRIES - 1:
+            time.sleep(0.5 * (attempt + 1))  # Backoff
+    
+    log.error(f"Injection failed after {INJECTION_RETRIES} attempts for session {session_id[:8]}")
+    return False
+
+
+def inject_message(session_id: str, text: str) -> None:
+    """Queue message for async injection (non-blocking)."""
+    _injection_queue.put(InjectionTask(session_id=session_id, text=text))
+
+
+def injection_worker(shutdown_event: threading.Event) -> None:
+    """Worker thread that processes injection queue."""
+    while not shutdown_event.is_set():
+        try:
+            task = _injection_queue.get(timeout=1)
+        except queue.Empty:
+            continue
+        
+        try:
+            inject_message_sync(task.session_id, task.text)
+        except Exception as e:
+            log.error(f"Injection worker error: {e}")
+        finally:
+            _injection_queue.task_done()
+
+
+def message_worker(agents: dict[str, dict], shutdown_event: threading.Event) -> None:
+    """Worker thread that processes message queue."""
+    while not shutdown_event.is_set():
+        try:
+            task = _message_queue.get(timeout=1)
+        except queue.Empty:
+            continue
+        
+        try:
+            # Small delay to ensure file is fully written
+            time.sleep(0.1)
+            if task.path.exists():
+                process_message_file(task.path, agents)
+        except Exception as e:
+            log.error(f"Message worker error: {e}")
+        finally:
+            _message_queue.task_done()
+
+
+def session_worker(agents: dict[str, dict], shutdown_event: threading.Event) -> None:
+    """Worker thread that processes session orientation queue."""
+    while not shutdown_event.is_set():
+        try:
+            task = _session_queue.get(timeout=1)
+        except queue.Empty:
+            continue
+        
+        try:
+            # Small delay to ensure file is fully written
+            time.sleep(0.2)
+            if task.path.exists():
+                process_session_file(task.path, agents)
+        except Exception as e:
+            log.error(f"Session worker error: {e}")
+        finally:
+            _session_queue.task_done()
 
 
 # =============================================================================
@@ -493,6 +684,49 @@ def find_agent_for_directory(directory: str, agents: dict[str, dict]) -> Optiona
         if agent.get("projectPath") == directory:
             return agent
     return None
+
+
+def get_or_create_agent_for_directory(directory: str, agents: dict[str, dict]) -> dict:
+    """Find or auto-create an agent for a directory.
+    
+    If no agent is registered for this directory, creates one automatically
+    based on the directory name.
+    """
+    # Check for existing agent
+    existing = find_agent_for_directory(directory, agents)
+    if existing:
+        return existing
+    
+    # Auto-create agent from directory
+    dir_name = Path(directory).name or "root"
+    agent_id = dir_name.lower().replace(" ", "-").replace("_", "-")
+    
+    # Handle conflicts by appending parent dir
+    if agent_id in agents:
+        parent = Path(directory).parent.name
+        agent_id = f"{parent}-{agent_id}".lower().replace(" ", "-")
+    
+    agent = {
+        "id": agent_id,
+        "projectPath": directory,
+        "role": f"Auto-registered agent for {directory}",
+        "capabilities": [],
+        "collaboratesWith": [],
+        "lastSeen": int(time.time() * 1000),
+        "status": "active",
+        "autoCreated": True,
+    }
+    
+    # Save to disk
+    agent_file = AGENTS_DIR / f"{agent_id}.json"
+    try:
+        agent_file.write_text(json.dumps(agent, indent=2))
+        agents[agent_id] = agent
+        log.info(f"Auto-registered agent '{agent_id}' for {directory}")
+    except OSError as e:
+        log.error(f"Failed to save auto-created agent: {e}")
+    
+    return agent
 
 
 def format_orientation(agent: dict) -> str:
@@ -567,9 +801,9 @@ def process_session_file(path: Path, agents: dict[str, dict], active_sessions: s
     if not directory:
         return
     
-    agent = find_agent_for_directory(directory, agents)
-    if agent:
-        orient_session(session_id, agent)
+    # Get or auto-create agent for this directory
+    agent = get_or_create_agent_for_directory(directory, agents)
+    orient_session(session_id, agent)
 
 
 def poll_active_sessions(agents: dict[str, dict]) -> None:
@@ -603,10 +837,13 @@ def poll_active_sessions(agents: dict[str, dict]) -> None:
             continue
         
         directory = session.get("directory", "")
-        agent = find_agent_for_directory(directory, agents)
-        if agent:
-            log.debug(f"Polling found new session {session_id[:8]} for {directory}")
-            orient_session(session_id, agent)
+        if not directory:
+            continue
+        
+        # Get or auto-create agent for this directory
+        agent = get_or_create_agent_for_directory(directory, agents)
+        log.debug(f"Polling found new session {session_id[:8]} for {directory}")
+        orient_session(session_id, agent)
 
 
 def format_notification(msg: dict, to_agent_id: str) -> str:
@@ -731,9 +968,6 @@ def process_message_file(path: Path, agents: dict[str, dict]) -> None:
 class MessageHandler(FileSystemEventHandler):
     """Handle new message files in ~/.agent-hub/messages/."""
 
-    def __init__(self, agents: dict[str, dict]):
-        self.agents = agents
-
     def on_created(self, event: FileCreatedEvent) -> None:
         if event.is_directory:
             return
@@ -745,9 +979,8 @@ class MessageHandler(FileSystemEventHandler):
             return
 
         log.info(f"New message file detected: {path.name}")
-        # Small delay to ensure file is fully written
-        time.sleep(0.1)
-        process_message_file(path, self.agents)
+        # Queue for async processing (non-blocking)
+        _message_queue.put(MessageTask(path=path))
 
 
 class SessionHandler(FileSystemEventHandler):
@@ -756,9 +989,6 @@ class SessionHandler(FileSystemEventHandler):
     Only orients on file creation, not modification.
     This prevents re-orienting existing sessions on every file update.
     """
-
-    def __init__(self, agents: dict[str, dict]):
-        self.agents = agents
 
     def on_created(self, event: FileCreatedEvent) -> None:
         """Only orient when a NEW session file is created."""
@@ -771,8 +1001,8 @@ class SessionHandler(FileSystemEventHandler):
             return
 
         log.debug(f"New session file created: {path.name}")
-        time.sleep(0.2)  # Wait for file to be fully written
-        process_session_file(path, self.agents)
+        # Queue for async processing (non-blocking)
+        _session_queue.put(SessionTask(path=path))
 
 
 class AgentHandler(FileSystemEventHandler):
@@ -826,18 +1056,22 @@ def main():
     agents = load_agents()
     log.info(f"Loaded {len(agents)} registered agents: {list(agents.keys())}")
 
+    # Bootstrap: mark existing sessions WITH agents as already oriented
+    # Sessions without agents will be auto-registered by the poller
+    bootstrap_oriented_sessions(agents)
+
     # Set up observers
     observer = Observer()
 
     # Watch messages directory
-    message_handler = MessageHandler(agents)
+    message_handler = MessageHandler()
     observer.schedule(message_handler, str(MESSAGES_DIR), recursive=False)
 
     # Watch OpenCode sessions directory (if exists)
     # Only watches for NEW session files - does NOT scan existing sessions on startup
     # This prevents spamming hundreds of sessions with orientation messages
     if OPENCODE_SESSIONS_DIR.exists():
-        session_handler = SessionHandler(agents)
+        session_handler = SessionHandler()
         observer.schedule(session_handler, str(OPENCODE_SESSIONS_DIR), recursive=False)
         log.info(f"Watching for new sessions in {OPENCODE_SESSIONS_DIR}")
     else:
@@ -892,10 +1126,18 @@ def main():
         threading.Thread(target=session_poller, name="session-poller", daemon=True),
         threading.Thread(target=gc_worker, name="gc-worker", daemon=True),
         threading.Thread(target=hub_monitor, name="hub-monitor", daemon=True),
+        threading.Thread(target=lambda: message_worker(agents, shutdown_event), name="message-worker", daemon=True),
+        threading.Thread(target=lambda: session_worker(agents, shutdown_event), name="session-worker", daemon=True),
     ]
+    
+    # Start injection workers (pool for concurrent injections)
+    for i in range(INJECTION_WORKERS):
+        t = threading.Thread(target=lambda: injection_worker(shutdown_event), name=f"injection-worker-{i}", daemon=True)
+        threads.append(t)
+    
     for t in threads:
         t.start()
-    log.info(f"Started {len(threads)} background threads")
+    log.info(f"Started {len(threads)} background threads ({INJECTION_WORKERS} injection workers)")
 
     try:
         # Main thread just waits - all work happens in threads and watchdog callbacks
