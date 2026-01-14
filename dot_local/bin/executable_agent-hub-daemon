@@ -10,15 +10,29 @@
 agent-hub-daemon: Watch ~/.agent-hub/messages and inject into OpenCode sessions.
 
 Features:
-- Push notifications to OpenCode sessions
+- Hub server management (auto-starts headless OpenCode server on port 4096)
+- Session polling to detect new agents and inject orientation
+- Push notifications to OpenCode sessions (always wake, always expect response)
 - Thread management (auto-create, track, resolve)
 - Garbage collection (expire stale messages/threads)
+- Self-contained response instructions in every injection
 
-Wake behavior (noReply: false):
-- type="question" → always wake
-- type="task" + priority="urgent" → always wake
-- metadata.wake=true → wake only if session is idle
-- Otherwise → noReply: true (no wake)
+Hub server:
+- Daemon auto-starts `opencode serve --port 4096` if not already running
+- Single hub server provides HTTP API access to ALL OpenCode sessions
+- Any `opencode` TUI instance creates sessions visible via hub API
+- Daemon injects messages via POST /session/{id}/message
+
+Wake behavior: ALL messages wake agents (noReply: false)
+- Agents don't need hub protocol in their definitions
+- Daemon injects full response instructions with each message
+- Running daemon = opt-in to coordination
+
+Session polling:
+- Polls OpenCode /session endpoint periodically
+- Matches sessions to registered agents by projectPath
+- Injects orientation message on first match (instructs agent to sync)
+- Tracks oriented sessions to avoid re-injection
 
 Thread lifecycle:
 - Messages without threadId get one auto-assigned
@@ -27,14 +41,14 @@ Thread lifecycle:
 - Threads expire when all participants are stale (>1hr lastSeen)
 - Messages expire after 1 hour regardless
 - Stale agents (>1hr lastSeen) are removed automatically
-
-Idle detection: session is idle if last message role is "assistant"
 """
 
 import json
 import logging
 import os
 import shutil
+import signal
+import subprocess
 import time
 import uuid
 from pathlib import Path
@@ -50,6 +64,8 @@ MESSAGES_DIR = AGENT_HUB_DIR / "messages"
 ARCHIVE_DIR = MESSAGES_DIR / "archive"
 THREADS_DIR = AGENT_HUB_DIR / "threads"
 AGENTS_DIR = AGENT_HUB_DIR / "agents"
+OPENCODE_DATA_DIR = Path.home() / ".local/share/opencode"
+OPENCODE_SESSIONS_DIR = OPENCODE_DATA_DIR / "storage/session/global"
 OPENCODE_PORT = int(os.environ.get("OPENCODE_PORT", "4096"))
 OPENCODE_URL = f"http://localhost:{OPENCODE_PORT}"
 LOG_LEVEL = os.environ.get("AGENT_HUB_DAEMON_LOG_LEVEL", "INFO")
@@ -58,6 +74,12 @@ LOG_LEVEL = os.environ.get("AGENT_HUB_DAEMON_LOG_LEVEL", "INFO")
 MESSAGE_TTL_SECONDS = 3600  # 1 hour
 AGENT_STALE_SECONDS = 3600  # 1 hour
 GC_INTERVAL_SECONDS = 60    # Run GC every 60 seconds
+
+# Track sessions that have been oriented (session_id -> True)
+ORIENTED_SESSIONS: set[str] = set()
+
+# Hub server process (launched by daemon if needed)
+HUB_SERVER_PROCESS: Optional[subprocess.Popen] = None
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL),
@@ -297,6 +319,86 @@ def run_gc(agents: dict[str, dict]) -> None:
 
 
 # =============================================================================
+# Hub Server Management
+# =============================================================================
+
+def is_hub_server_running() -> bool:
+    """Check if OpenCode hub server is responding on the configured port."""
+    try:
+        resp = requests.get(f"{OPENCODE_URL}/session", timeout=2)
+        return resp.status_code == 200
+    except requests.RequestException:
+        return False
+
+
+def start_hub_server() -> Optional[subprocess.Popen]:
+    """Launch OpenCode hub server in headless mode.
+    
+    The hub server provides HTTP API access to ALL OpenCode sessions,
+    allowing the daemon to inject messages into any session.
+    """
+    global HUB_SERVER_PROCESS
+    
+    if is_hub_server_running():
+        log.info(f"Hub server already running on port {OPENCODE_PORT}")
+        return None
+    
+    log.info(f"Starting OpenCode hub server on port {OPENCODE_PORT}...")
+    
+    # Find opencode binary
+    opencode_bin = shutil.which("opencode")
+    if not opencode_bin:
+        log.error("opencode binary not found in PATH")
+        return None
+    
+    # Launch headless server
+    try:
+        # Redirect stdout/stderr to log files
+        log_dir = Path.home() / ".local/share/agent-hub-daemon"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        hub_stdout = open(log_dir / "hub-stdout.log", "a")
+        hub_stderr = open(log_dir / "hub-stderr.log", "a")
+        
+        HUB_SERVER_PROCESS = subprocess.Popen(
+            [opencode_bin, "serve", "--port", str(OPENCODE_PORT), "--print-logs"],
+            stdout=hub_stdout,
+            stderr=hub_stderr,
+            start_new_session=True,  # Detach from terminal
+        )
+        
+        # Wait for server to start
+        for _ in range(30):  # 30 attempts, 0.5s each = 15s max
+            time.sleep(0.5)
+            if is_hub_server_running():
+                log.info(f"Hub server started (PID {HUB_SERVER_PROCESS.pid})")
+                return HUB_SERVER_PROCESS
+        
+        log.error("Hub server failed to start within timeout")
+        HUB_SERVER_PROCESS.terminate()
+        HUB_SERVER_PROCESS = None
+        return None
+        
+    except Exception as e:
+        log.error(f"Failed to start hub server: {e}")
+        return None
+
+
+def stop_hub_server() -> None:
+    """Stop the hub server if we started it."""
+    global HUB_SERVER_PROCESS
+    
+    if HUB_SERVER_PROCESS is not None:
+        log.info(f"Stopping hub server (PID {HUB_SERVER_PROCESS.pid})...")
+        try:
+            HUB_SERVER_PROCESS.terminate()
+            HUB_SERVER_PROCESS.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            log.warning("Hub server didn't stop gracefully, killing...")
+            HUB_SERVER_PROCESS.kill()
+        HUB_SERVER_PROCESS = None
+
+
+# =============================================================================
 # OpenCode Integration
 # =============================================================================
 
@@ -311,64 +413,23 @@ def get_sessions() -> list[dict]:
         return []
 
 
-def find_session_for_agent(agent: dict, sessions: list[dict]) -> Optional[dict]:
-    """Match agent to session by projectPath == directory."""
+def find_sessions_for_agent(agent: dict, sessions: list[dict]) -> list[dict]:
+    """Match agent to ALL sessions by projectPath == directory.
+    
+    Returns all matching sessions to support multiple sessions in same project.
+    """
     agent_path = agent.get("projectPath", "")
-    for session in sessions:
-        if session.get("directory") == agent_path:
-            return session
-    return None
+    return [s for s in sessions if s.get("directory") == agent_path]
 
 
-def is_session_idle(session_id: str) -> bool:
-    """Check if session is idle (last message is from assistant)."""
-    try:
-        resp = requests.get(
-            f"{OPENCODE_URL}/session/{session_id}/message",
-            timeout=5,
-        )
-        resp.raise_for_status()
-        messages = resp.json()
-        if not messages:
-            return True  # Empty session = idle
-        last_msg = messages[-1]
-        role = last_msg.get("info", {}).get("role", "")
-        return role == "assistant"
-    except requests.RequestException as e:
-        log.warning(f"Failed to check session idle status: {e}")
-        return False  # Assume busy if we can't tell
 
 
-def should_wake(msg: dict, session_id: str) -> bool:
-    """Determine if message should wake the agent (noReply: false)."""
-    msg_type = msg.get("type", "")
-    priority = msg.get("priority", "normal")
-    metadata = msg.get("metadata", {})
 
-    # Questions always wake
-    if msg_type == "question":
-        log.debug("Wake: message is a question")
-        return True
-
-    # Urgent tasks always wake
-    if msg_type == "task" and priority == "urgent":
-        log.debug("Wake: urgent task")
-        return True
-
-    # Explicit wake request - only if idle
-    if metadata.get("wake"):
-        idle = is_session_idle(session_id)
-        log.debug(f"Wake requested, session idle={idle}")
-        return idle
-
-    return False
-
-
-def inject_message(session_id: str, text: str, wake: bool = False) -> bool:
-    """Inject message into OpenCode session."""
+def inject_message(session_id: str, text: str) -> bool:
+    """Inject message into OpenCode session. Always wakes (noReply: false)."""
     payload = {
         "parts": [{"type": "text", "text": text}],
-        "noReply": not wake,
+        "noReply": False,  # Always wake - daemon controls coordination
     }
     try:
         resp = requests.post(
@@ -377,8 +438,7 @@ def inject_message(session_id: str, text: str, wake: bool = False) -> bool:
             timeout=10,
         )
         if resp.status_code == 200:
-            wake_str = "with wake" if wake else "silent"
-            log.info(f"Injected message ({wake_str}) into session {session_id[:20]}...")
+            log.info(f"Injected message into session {session_id[:8]}...")
             return True
         else:
             log.error(f"Injection failed: {resp.status_code} {resp.text}")
@@ -388,8 +448,105 @@ def inject_message(session_id: str, text: str, wake: bool = False) -> bool:
         return False
 
 
-def format_notification(msg: dict) -> str:
-    """Format agent-hub message as structured notification block."""
+# =============================================================================
+# Session Orientation
+# =============================================================================
+
+def load_opencode_session(path: Path) -> Optional[dict]:
+    """Load an OpenCode session file."""
+    try:
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        log.warning(f"Failed to load session {path}: {e}")
+        return None
+
+
+def find_agent_for_directory(directory: str, agents: dict[str, dict]) -> Optional[dict]:
+    """Find registered agent matching a directory/projectPath."""
+    for agent in agents.values():
+        if agent.get("projectPath") == directory:
+            return agent
+    return None
+
+
+def format_orientation(agent: dict) -> str:
+    """Format orientation message for a newly detected agent session."""
+    agent_id = agent.get("id", "unknown")
+    project_path = agent.get("projectPath", "unknown")
+    
+    lines = [
+        "┌─────────────────────────────────────────────────",
+        "│ 🔗 AGENT HUB - CONNECTED",
+        "├─────────────────────────────────────────────────",
+        f"│ You are registered as: {agent_id}",
+        f"│ Project: {project_path}",
+        "├─────────────────────────────────────────────────",
+        "│ Check for pending messages and work:",
+        f"│   agent-hub_sync(agentId: \"{agent_id}\")",
+        "│",
+        "│ Review any pending items before proceeding.",
+        "└─────────────────────────────────────────────────",
+    ]
+    return "\n".join(lines)
+
+
+def get_active_session_ids() -> set[str]:
+    """Get IDs of currently active OpenCode sessions from the API."""
+    sessions = get_sessions()
+    return {s.get("id", "") for s in sessions if s.get("id")}
+
+
+def orient_session(session_id: str, agent: dict) -> bool:
+    """Inject orientation message into a session."""
+    if not session_id:
+        return False
+    
+    if session_id in ORIENTED_SESSIONS:
+        return False  # Already oriented
+    
+    orientation = format_orientation(agent)
+    if inject_message(session_id, orientation):
+        ORIENTED_SESSIONS.add(session_id)
+        log.info(f"Oriented session {session_id[:8]} for agent {agent.get('id')}")
+        return True
+    return False
+
+
+def process_session_file(path: Path, agents: dict[str, dict], active_sessions: set[str] = None) -> None:
+    """Process an OpenCode session file and orient if needed.
+    
+    Only orients if the session is currently active (in the API).
+    """
+    session = load_opencode_session(path)
+    if not session:
+        return
+    
+    session_id = session.get("id", "")
+    if not session_id:
+        return
+    
+    if session_id in ORIENTED_SESSIONS:
+        return  # Already oriented
+    
+    # Check if session is active (only fetch once if not provided)
+    if active_sessions is None:
+        active_sessions = get_active_session_ids()
+    
+    if session_id not in active_sessions:
+        log.debug(f"Session {session_id[:8]} not active, skipping orientation")
+        return
+    
+    directory = session.get("directory", "")
+    if not directory:
+        return
+    
+    agent = find_agent_for_directory(directory, agents)
+    if agent:
+        orient_session(session_id, agent)
+
+
+def format_notification(msg: dict, to_agent_id: str) -> str:
+    """Format agent-hub message with full response instructions."""
     from_agent = msg.get("from", "unknown")
     msg_type = msg.get("type", "message")
     content = msg.get("content", "")
@@ -428,16 +585,20 @@ def format_notification(msg: dict) -> str:
     lines.extend([
         "├─────────────────────────────────────────────────",
         f"│ {content}",
+        "├─────────────────────────────────────────────────",
+        "│ RESPOND using agent-hub_send_message:",
+        f"│   from: \"{to_agent_id}\"",
+        f"│   to: \"{from_agent}\"",
+    ])
+    if thread_id:
+        lines.append(f"│   threadId: \"{thread_id}\"")
+    lines.extend([
+        "│   type: \"completion\" | \"context\" | \"question\" | \"error\"",
+        "│   content: <your response>",
+        "│",
+        "│ To resolve thread, include \"RESOLVED:\" in content.",
         "└─────────────────────────────────────────────────",
     ])
-
-    # Add action required hint for questions/urgent tasks
-    if msg_type == "question":
-        lines.insert(-1, "│")
-        lines.insert(-1, "│ ⚡ ACTION REQUIRED: Please respond to this question")
-    elif msg_type == "task" and priority == "urgent":
-        lines.insert(-1, "│")
-        lines.insert(-1, "│ ⚡ ACTION REQUIRED: Urgent task needs attention")
 
     return "\n".join(lines)
 
@@ -480,18 +641,17 @@ def process_message_file(path: Path, agents: dict[str, dict]) -> None:
         log.debug("No active sessions")
         return
 
-    notification = format_notification(msg)
-
     for agent in target_agents:
         # Don't notify sender
         if agent["id"] == msg.get("from"):
             continue
 
-        session = find_session_for_agent(agent, sessions)
-        if session:
-            session_id = session["id"]
-            wake = should_wake(msg, session_id)
-            inject_message(session_id, notification, wake=wake)
+        matching_sessions = find_sessions_for_agent(agent, sessions)
+        if matching_sessions:
+            notification = format_notification(msg, agent["id"])
+            for session in matching_sessions:
+                inject_message(session["id"], notification)
+            log.debug(f"Notified {len(matching_sessions)} session(s) for agent {agent['id']}")
         else:
             log.debug(f"No session found for agent {agent['id']}")
 
@@ -501,25 +661,10 @@ def process_message_file(path: Path, agents: dict[str, dict]) -> None:
 # =============================================================================
 
 class MessageHandler(FileSystemEventHandler):
-    """Handle new message files."""
+    """Handle new message files in ~/.agent-hub/messages/."""
 
-    def __init__(self):
-        self.agents = load_agents()
-        self._last_reload = time.time()
-        self._last_gc = time.time()
-
-    def reload_agents_if_needed(self) -> None:
-        """Reload agents periodically."""
-        if time.time() - self._last_reload > 60:
-            self.agents = load_agents()
-            self._last_reload = time.time()
-
-    def run_gc_if_needed(self) -> None:
-        """Run garbage collection periodically."""
-        if time.time() - self._last_gc > GC_INTERVAL_SECONDS:
-            self.reload_agents_if_needed()
-            run_gc(self.agents)
-            self._last_gc = time.time()
+    def __init__(self, agents: dict[str, dict]):
+        self.agents = agents
 
     def on_created(self, event: FileCreatedEvent) -> None:
         if event.is_directory:
@@ -531,12 +676,59 @@ class MessageHandler(FileSystemEventHandler):
         if "archive" in path.parts:
             return
 
-        self.reload_agents_if_needed()
-
         log.debug(f"New message file: {path.name}")
         # Small delay to ensure file is fully written
         time.sleep(0.1)
         process_message_file(path, self.agents)
+
+
+class SessionHandler(FileSystemEventHandler):
+    """Handle new/modified OpenCode session files for orientation."""
+
+    def __init__(self, agents: dict[str, dict]):
+        self.agents = agents
+
+    def on_created(self, event: FileCreatedEvent) -> None:
+        self._handle_session_event(event)
+
+    def on_modified(self, event) -> None:
+        self._handle_session_event(event)
+
+    def _handle_session_event(self, event) -> None:
+        if event.is_directory:
+            return
+        path = Path(event.src_path)
+        if path.suffix != ".json":
+            return
+        if not path.name.startswith("ses_"):
+            return
+
+        log.debug(f"Session file event: {path.name}")
+        time.sleep(0.1)
+        process_session_file(path, self.agents)
+
+
+class AgentHandler(FileSystemEventHandler):
+    """Handle agent registration changes to reload agents dict."""
+
+    def __init__(self, agents: dict[str, dict]):
+        self.agents = agents
+
+    def on_created(self, event: FileCreatedEvent) -> None:
+        self._reload()
+
+    def on_modified(self, event) -> None:
+        self._reload()
+
+    def on_deleted(self, event) -> None:
+        self._reload()
+
+    def _reload(self) -> None:
+        """Reload agents from disk."""
+        new_agents = load_agents()
+        self.agents.clear()
+        self.agents.update(new_agents)
+        log.debug(f"Reloaded agents: {list(self.agents.keys())}")
 
 
 # =============================================================================
@@ -548,24 +740,74 @@ def main():
     MESSAGES_DIR.mkdir(parents=True, exist_ok=True)
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
     THREADS_DIR.mkdir(parents=True, exist_ok=True)
+    AGENTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    log.info(f"Watching {MESSAGES_DIR}")
+    log.info(f"Watching messages: {MESSAGES_DIR}")
+    log.info(f"Watching sessions: {OPENCODE_SESSIONS_DIR}")
+    log.info(f"Watching agents: {AGENTS_DIR}")
     log.info(f"OpenCode API: {OPENCODE_URL}")
-    log.info("Wake behavior: questions=always, urgent_tasks=always, wake_flag=if_idle")
+    log.info("All messages wake agents with response instructions")
     log.info(f"Message TTL: {MESSAGE_TTL_SECONDS}s, GC interval: {GC_INTERVAL_SECONDS}s")
 
-    handler = MessageHandler()
+    # Start hub server if not already running
+    start_hub_server()
+
+    # Shared agents dict - updated by AgentHandler
+    agents = load_agents()
+    log.info(f"Loaded {len(agents)} registered agents: {list(agents.keys())}")
+
+    # Set up observers
     observer = Observer()
-    observer.schedule(handler, str(MESSAGES_DIR), recursive=False)
+
+    # Watch messages directory
+    message_handler = MessageHandler(agents)
+    observer.schedule(message_handler, str(MESSAGES_DIR), recursive=False)
+
+    # Watch OpenCode sessions directory (if exists)
+    if OPENCODE_SESSIONS_DIR.exists():
+        session_handler = SessionHandler(agents)
+        observer.schedule(session_handler, str(OPENCODE_SESSIONS_DIR), recursive=False)
+        # Process only currently active sessions on startup
+        active_sessions = get_active_session_ids()
+        if active_sessions:
+            log.info(f"Found {len(active_sessions)} active sessions")
+            for session_file in OPENCODE_SESSIONS_DIR.glob("ses_*.json"):
+                process_session_file(session_file, agents, active_sessions)
+    else:
+        log.warning(f"Sessions directory not found: {OPENCODE_SESSIONS_DIR}")
+
+    # Watch agents directory for registration changes
+    agent_handler = AgentHandler(agents)
+    observer.schedule(agent_handler, str(AGENTS_DIR), recursive=False)
+
     observer.start()
 
+    # Handle signals for graceful shutdown
+    def shutdown_handler(signum, frame):
+        log.info(f"Received signal {signum}, shutting down...")
+        observer.stop()
+        stop_hub_server()
+    
+    signal.signal(signal.SIGTERM, shutdown_handler)
+    signal.signal(signal.SIGINT, shutdown_handler)
+
+    last_gc = time.time()
     try:
         while True:
             time.sleep(1)
-            handler.run_gc_if_needed()
+            # Run GC periodically
+            if time.time() - last_gc > GC_INTERVAL_SECONDS:
+                run_gc(agents)
+                last_gc = time.time()
+            # Check if hub server is still running (restart if we started it and it died)
+            if HUB_SERVER_PROCESS is not None and HUB_SERVER_PROCESS.poll() is not None:
+                log.warning("Hub server died, restarting...")
+                start_hub_server()
     except KeyboardInterrupt:
         log.info("Shutting down")
+    finally:
         observer.stop()
+        stop_hub_server()
     observer.join()
 
 
