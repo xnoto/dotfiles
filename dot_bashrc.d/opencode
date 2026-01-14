@@ -2,7 +2,7 @@
 export NODE_OPTIONS='--max-old-space-size=6144'
 
 # OpenCode configuration for agent-hub-daemon integration
-# 
+#
 # The agent-hub-daemon auto-starts a headless hub server (opencode serve --port 4096)
 # which provides HTTP API access to ALL sessions. User TUI instances don't need
 # to start their own servers - they just create sessions the hub can see.

@@ -99,7 +99,7 @@ class InjectionTask:
     session_id: str
     text: str
 
-@dataclass 
+@dataclass
 class MessageTask:
     path: Path
 
@@ -114,11 +114,11 @@ _session_queue: queue.Queue[SessionTask] = queue.Queue()
 # Prometheus-compatible metrics
 class PrometheusMetrics:
     """Thread-safe Prometheus-compatible metrics collector."""
-    
+
     def __init__(self):
         self._lock = threading.Lock()
         self._start_time = time.time()
-        
+
         # Counters (only increase)
         self._counters = {
             "agent_hub_messages_total": 0,
@@ -135,7 +135,7 @@ class PrometheusMetrics:
             "agent_hub_gc_agents_cleaned_total": 0,
             "agent_hub_gc_messages_archived_total": 0,
         }
-        
+
         # Gauges (can increase or decrease)
         self._gauges = {
             "agent_hub_active_agents": 0,
@@ -143,7 +143,7 @@ class PrometheusMetrics:
             "agent_hub_injection_queue_size": 0,
             "agent_hub_message_queue_size": 0,
         }
-        
+
         # Metadata for metrics
         self._help = {
             "agent_hub_messages_total": "Total messages processed successfully",
@@ -165,18 +165,18 @@ class PrometheusMetrics:
             "agent_hub_message_queue_size": "Current message queue depth",
             "agent_hub_start_time_seconds": "Unix timestamp when daemon started",
         }
-    
+
     def inc(self, name: str, value: int = 1) -> None:
         """Increment a counter."""
         with self._lock:
             if name in self._counters:
                 self._counters[name] += value
-    
+
     def set_gauge(self, name: str, value: float) -> None:
         """Set a gauge value."""
         with self._lock:
             self._gauges[name] = value
-    
+
     def get(self, name: str) -> float:
         """Get current value of a metric."""
         with self._lock:
@@ -185,7 +185,7 @@ class PrometheusMetrics:
             if name in self._gauges:
                 return self._gauges[name]
             return 0
-    
+
     def to_prometheus(self) -> str:
         """Export all metrics in Prometheus text format."""
         lines = []
@@ -194,23 +194,23 @@ class PrometheusMetrics:
             lines.append(f"# HELP agent_hub_start_time_seconds {self._help['agent_hub_start_time_seconds']}")
             lines.append("# TYPE agent_hub_start_time_seconds gauge")
             lines.append(f"agent_hub_start_time_seconds {self._start_time}")
-            
+
             # Counters
             for name, value in self._counters.items():
                 if name in self._help:
                     lines.append(f"# HELP {name} {self._help[name]}")
                 lines.append(f"# TYPE {name} counter")
                 lines.append(f"{name} {value}")
-            
+
             # Gauges
             for name, value in self._gauges.items():
                 if name in self._help:
                     lines.append(f"# HELP {name} {self._help[name]}")
                 lines.append(f"# TYPE {name} gauge")
                 lines.append(f"{name} {value}")
-        
+
         return "\n".join(lines) + "\n"
-    
+
     def log_summary(self) -> str:
         """Return a human-readable summary for logging."""
         with self._lock:
@@ -218,7 +218,7 @@ class PrometheusMetrics:
             hours, remainder = divmod(int(uptime), 3600)
             minutes, seconds = divmod(remainder, 60)
             uptime_str = f"{hours}h{minutes}m{seconds}s" if hours else f"{minutes}m{seconds}s" if minutes else f"{seconds}s"
-            
+
             return (
                 f"uptime={uptime_str} "
                 f"msgs={self._counters['agent_hub_messages_total']}/{self._counters['agent_hub_messages_failed_total']} "
@@ -260,7 +260,7 @@ def save_oriented_sessions() -> None:
 
 def bootstrap_oriented_sessions(agents: dict[str, dict]) -> None:
     """Mark sessions that already have matching agents as oriented.
-    
+
     This prevents re-orienting sessions that were already set up.
     Sessions WITHOUT a matching agent are left for the poller to auto-register.
     """
@@ -268,7 +268,7 @@ def bootstrap_oriented_sessions(agents: dict[str, dict]) -> None:
     sessions = get_sessions()
     if not sessions:
         return
-    
+
     initial_count = len(ORIENTED_SESSIONS)
     for session in sessions:
         session_id = session.get("id", "")
@@ -278,7 +278,7 @@ def bootstrap_oriented_sessions(agents: dict[str, dict]) -> None:
         # Only bootstrap if agent already exists for this directory
         if find_agent_for_directory(directory, agents):
             ORIENTED_SESSIONS.add(session_id)
-    
+
     added = len(ORIENTED_SESSIONS) - initial_count
     if added > 0:
         save_oriented_sessions()
@@ -463,25 +463,25 @@ def check_thread_resolution(msg: dict) -> bool:
 
 def gc_oriented_sessions() -> int:
     """Remove oriented session IDs for sessions inactive for >1 hour.
-    
+
     This allows re-orientation when a user returns to an old session,
     and prevents the cache from growing unbounded.
-    
+
     Returns number of sessions cleaned.
     """
     global ORIENTED_SESSIONS
-    
+
     if not ORIENTED_SESSIONS:
         return 0
-    
+
     # Get current sessions from API
     current_sessions = get_sessions()
     if not current_sessions:
         return 0  # Don't clear on API failure
-    
+
     now_ms = int(time.time() * 1000)
     stale_threshold_ms = MESSAGE_TTL_SECONDS * 1000  # 1 hour
-    
+
     # Build set of recently active session IDs
     active_ids = set()
     for s in current_sessions:
@@ -491,7 +491,7 @@ def gc_oriented_sessions() -> int:
         updated = s.get("time", {}).get("updated", 0)
         if now_ms - updated < stale_threshold_ms:
             active_ids.add(session_id)
-    
+
     # Keep only recently active sessions in oriented cache
     stale = ORIENTED_SESSIONS - active_ids
     if stale:
@@ -507,7 +507,7 @@ def run_gc(agents: dict[str, dict]) -> None:
     """Run garbage collection on messages, threads, stale agents, and oriented sessions."""
     now_ms = int(time.time() * 1000)
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     agents_cleaned = 0
     messages_archived = 0
 
@@ -570,7 +570,7 @@ def run_gc(agents: dict[str, dict]) -> None:
                     archive_thread_messages(thread["id"])
             except (json.JSONDecodeError, OSError):
                 continue
-    
+
     # Update metrics
     metrics.inc("agent_hub_gc_runs_total")
     metrics.inc("agent_hub_gc_sessions_cleaned_total", sessions_cleaned)
@@ -594,24 +594,24 @@ def is_hub_server_running() -> bool:
 
 def start_hub_server() -> Optional[subprocess.Popen]:
     """Launch OpenCode hub server in headless mode.
-    
+
     The hub server provides HTTP API access to ALL OpenCode sessions,
     allowing the daemon to inject messages into any session.
     """
     global HUB_SERVER_PROCESS
-    
+
     if is_hub_server_running():
         log.info(f"Hub server already running on port {OPENCODE_PORT}")
         return None
-    
+
     log.info(f"Starting OpenCode hub server on port {OPENCODE_PORT}...")
-    
+
     # Find opencode binary
     opencode_bin = shutil.which("opencode")
     if not opencode_bin:
         log.error("opencode binary not found in PATH")
         return None
-    
+
     # Launch headless server
     try:
         # Redirect stdout/stderr to log files
@@ -619,26 +619,26 @@ def start_hub_server() -> Optional[subprocess.Popen]:
         log_dir.mkdir(parents=True, exist_ok=True)
         hub_stdout = open(log_dir / "hub-stdout.log", "a")
         hub_stderr = open(log_dir / "hub-stderr.log", "a")
-        
+
         HUB_SERVER_PROCESS = subprocess.Popen(
             [opencode_bin, "serve", "--port", str(OPENCODE_PORT), "--print-logs"],
             stdout=hub_stdout,
             stderr=hub_stderr,
             start_new_session=True,  # Detach from terminal
         )
-        
+
         # Wait for server to start
         for _ in range(30):  # 30 attempts, 0.5s each = 15s max
             time.sleep(0.5)
             if is_hub_server_running():
                 log.info(f"Hub server started (PID {HUB_SERVER_PROCESS.pid})")
                 return HUB_SERVER_PROCESS
-        
+
         log.error("Hub server failed to start within timeout")
         HUB_SERVER_PROCESS.terminate()
         HUB_SERVER_PROCESS = None
         return None
-        
+
     except Exception as e:
         log.error(f"Failed to start hub server: {e}")
         return None
@@ -647,7 +647,7 @@ def start_hub_server() -> Optional[subprocess.Popen]:
 def stop_hub_server() -> None:
     """Stop the hub server if we started it."""
     global HUB_SERVER_PROCESS
-    
+
     if HUB_SERVER_PROCESS is not None:
         log.info(f"Stopping hub server (PID {HUB_SERVER_PROCESS.pid})...")
         try:
@@ -677,13 +677,13 @@ def get_sessions_uncached() -> list[dict]:
 def get_sessions() -> list[dict]:
     """Fetch sessions with caching to avoid repeated API calls."""
     global _sessions_cache, _sessions_cache_time
-    
+
     now = time.time()
     with _sessions_cache_lock:
         if now - _sessions_cache_time < SESSION_CACHE_TTL and _sessions_cache:
             metrics.inc("agent_hub_cache_hits_total")
             return _sessions_cache
-        
+
         # Cache miss or expired
         metrics.inc("agent_hub_cache_misses_total")
         sessions = get_sessions_uncached()
@@ -702,7 +702,7 @@ def invalidate_session_cache() -> None:
 
 def find_sessions_for_agent(agent: dict, sessions: list[dict]) -> list[dict]:
     """Find the most recent session for an agent's projectPath.
-    
+
     Only returns the single most recently updated session to avoid
     spamming historical sessions with messages.
     """
@@ -710,7 +710,7 @@ def find_sessions_for_agent(agent: dict, sessions: list[dict]) -> list[dict]:
     matching = [s for s in sessions if s.get("directory") == agent_path]
     if not matching:
         return []
-    
+
     # Return only the most recently updated session
     matching.sort(key=lambda s: s.get("time", {}).get("updated", 0), reverse=True)
     return [matching[0]]
@@ -723,7 +723,7 @@ def inject_message_sync(session_id: str, text: str) -> bool:
         "parts": [{"type": "text", "text": text}],
         "noReply": False,  # Always wake - daemon controls coordination
     }
-    
+
     for attempt in range(INJECTION_RETRIES):
         try:
             resp = requests.post(
@@ -739,11 +739,11 @@ def inject_message_sync(session_id: str, text: str) -> bool:
                 log.warning(f"Injection attempt {attempt+1} failed: {resp.status_code}")
         except requests.RequestException as e:
             log.warning(f"Injection attempt {attempt+1} failed: {e}")
-        
+
         if attempt < INJECTION_RETRIES - 1:
             metrics.inc("agent_hub_injections_retried_total")
             time.sleep(0.5 * (attempt + 1))  # Backoff
-    
+
     log.error(f"Injection failed after {INJECTION_RETRIES} attempts for session {session_id[:8]}")
     metrics.inc("agent_hub_injections_failed_total")
     return False
@@ -761,7 +761,7 @@ def injection_worker(shutdown_event: threading.Event) -> None:
             task = _injection_queue.get(timeout=1)
         except queue.Empty:
             continue
-        
+
         try:
             inject_message_sync(task.session_id, task.text)
         except Exception as e:
@@ -777,7 +777,7 @@ def message_worker(agents: dict[str, dict], shutdown_event: threading.Event) -> 
             task = _message_queue.get(timeout=1)
         except queue.Empty:
             continue
-        
+
         try:
             # Small delay to ensure file is fully written
             time.sleep(0.1)
@@ -796,7 +796,7 @@ def session_worker(agents: dict[str, dict], shutdown_event: threading.Event) -> 
             task = _session_queue.get(timeout=1)
         except queue.Empty:
             continue
-        
+
         try:
             # Small delay to ensure file is fully written
             time.sleep(0.2)
@@ -831,7 +831,7 @@ def find_agent_for_directory(directory: str, agents: dict[str, dict]) -> Optiona
 
 def get_or_create_agent_for_directory(directory: str, agents: dict[str, dict]) -> dict:
     """Find or auto-create an agent for a directory.
-    
+
     If no agent is registered for this directory, creates one automatically
     based on the directory name.
     """
@@ -839,16 +839,16 @@ def get_or_create_agent_for_directory(directory: str, agents: dict[str, dict]) -
     existing = find_agent_for_directory(directory, agents)
     if existing:
         return existing
-    
+
     # Auto-create agent from directory
     dir_name = Path(directory).name or "root"
     agent_id = dir_name.lower().replace(" ", "-").replace("_", "-")
-    
+
     # Handle conflicts by appending parent dir
     if agent_id in agents:
         parent = Path(directory).parent.name
         agent_id = f"{parent}-{agent_id}".lower().replace(" ", "-")
-    
+
     agent = {
         "id": agent_id,
         "projectPath": directory,
@@ -859,7 +859,7 @@ def get_or_create_agent_for_directory(directory: str, agents: dict[str, dict]) -
         "status": "active",
         "autoCreated": True,
     }
-    
+
     # Save to disk
     agent_file = AGENTS_DIR / f"{agent_id}.json"
     try:
@@ -870,7 +870,7 @@ def get_or_create_agent_for_directory(directory: str, agents: dict[str, dict]) -
         log.info(f"Auto-registered agent '{agent_id}' for {directory}")
     except OSError as e:
         log.error(f"Failed to save auto-created agent: {e}")
-    
+
     return agent
 
 
@@ -878,7 +878,7 @@ def format_orientation(agent: dict) -> str:
     """Format orientation message for a newly detected agent session."""
     agent_id = agent.get("id", "unknown")
     project_path = agent.get("projectPath", "unknown")
-    
+
     lines = [
         "┌─────────────────────────────────────────────────",
         "│ 🔗 AGENT HUB - CONNECTED",
@@ -905,10 +905,10 @@ def orient_session(session_id: str, agent: dict) -> bool:
     """Inject orientation message into a session."""
     if not session_id:
         return False
-    
+
     if session_id in ORIENTED_SESSIONS:
         return False  # Already oriented
-    
+
     orientation = format_orientation(agent)
     inject_message(session_id, orientation)
     ORIENTED_SESSIONS.add(session_id)
@@ -921,32 +921,32 @@ def orient_session(session_id: str, agent: dict) -> bool:
 
 def process_session_file(path: Path, agents: dict[str, dict], active_sessions: set[str] = None) -> None:
     """Process an OpenCode session file and orient if needed.
-    
+
     Only orients if the session is currently active (in the API).
     """
     session = load_opencode_session(path)
     if not session:
         return
-    
+
     session_id = session.get("id", "")
     if not session_id:
         return
-    
+
     if session_id in ORIENTED_SESSIONS:
         return  # Already oriented
-    
+
     # Check if session is active (only fetch once if not provided)
     if active_sessions is None:
         active_sessions = get_active_session_ids()
-    
+
     if session_id not in active_sessions:
         log.debug(f"Session {session_id[:8]} not active, skipping orientation")
         return
-    
+
     directory = session.get("directory", "")
     if not directory:
         return
-    
+
     # Get or auto-create agent for this directory
     agent = get_or_create_agent_for_directory(directory, agents)
     orient_session(session_id, agent)
@@ -954,17 +954,17 @@ def process_session_file(path: Path, agents: dict[str, dict], active_sessions: s
 
 def poll_active_sessions(agents: dict[str, dict]) -> None:
     """Poll API for active sessions and orient any new ones matching registered agents.
-    
+
     This catches sessions that were missed by the file watcher or were already
     running when the daemon started.
-    
+
     To avoid spamming historical sessions, we only consider the most recent
     session per unique directory.
     """
     sessions = get_sessions()
     if not sessions:
         return
-    
+
     # Group by directory, keep only the most recent session per directory
     by_directory: dict[str, dict] = {}
     for session in sessions:
@@ -975,17 +975,17 @@ def poll_active_sessions(agents: dict[str, dict]) -> None:
         existing = by_directory.get(directory)
         if not existing or updated > existing.get("time", {}).get("updated", 0):
             by_directory[directory] = session
-    
+
     # Only orient the most recent session per directory
     for session in by_directory.values():
         session_id = session.get("id", "")
         if not session_id or session_id in ORIENTED_SESSIONS:
             continue
-        
+
         directory = session.get("directory", "")
         if not directory:
             continue
-        
+
         # Get or auto-create agent for this directory
         agent = get_or_create_agent_for_directory(directory, agents)
         log.debug(f"Polling found new session {session_id[:8]} for {directory}")
@@ -1092,7 +1092,7 @@ def process_message_file(path: Path, agents: dict[str, dict]) -> None:
         return
 
     log.info(f"Processing message from {msg.get('from')} to {to}, found {len(sessions)} total sessions")
-    
+
     delivered = False
     for agent in target_agents:
         # Don't notify sender
@@ -1110,7 +1110,7 @@ def process_message_file(path: Path, agents: dict[str, dict]) -> None:
                 delivered = True
         else:
             log.info(f"No session found for agent {agent['id']}")
-    
+
     if delivered:
         metrics.inc("agent_hub_messages_total")
     else:
@@ -1141,7 +1141,7 @@ class MessageHandler(FileSystemEventHandler):
 
 class SessionHandler(FileSystemEventHandler):
     """Handle NEW OpenCode session files for orientation.
-    
+
     Only orients on file creation, not modification.
     This prevents re-orienting existing sessions on every file update.
     """
@@ -1244,7 +1244,7 @@ def main():
         log.info(f"Received signal {signum}, shutting down...")
         observer.stop()
         stop_hub_server()
-    
+
     signal.signal(signal.SIGTERM, shutdown_handler)
     signal.signal(signal.SIGINT, shutdown_handler)
 
@@ -1284,10 +1284,10 @@ def main():
                 # Update queue gauges
                 metrics.set_gauge("agent_hub_injection_queue_size", _injection_queue.qsize())
                 metrics.set_gauge("agent_hub_message_queue_size", _message_queue.qsize())
-                
+
                 # Write Prometheus metrics file
                 METRICS_FILE.write_text(metrics.to_prometheus())
-                
+
                 # Log summary
                 log.info(f"Metrics: {metrics.log_summary()}")
             except Exception as e:
@@ -1297,7 +1297,7 @@ def main():
     # Set initial gauge values
     metrics.set_gauge("agent_hub_active_agents", len(agents))
     metrics.set_gauge("agent_hub_oriented_sessions", len(ORIENTED_SESSIONS))
-    
+
     # Start background threads
     threads = [
         threading.Thread(target=session_poller, name="session-poller", daemon=True),
@@ -1307,12 +1307,12 @@ def main():
         threading.Thread(target=lambda: message_worker(agents, shutdown_event), name="message-worker", daemon=True),
         threading.Thread(target=lambda: session_worker(agents, shutdown_event), name="session-worker", daemon=True),
     ]
-    
+
     # Start injection workers (pool for concurrent injections)
     for i in range(INJECTION_WORKERS):
         t = threading.Thread(target=lambda: injection_worker(shutdown_event), name=f"injection-worker-{i}", daemon=True)
         threads.append(t)
-    
+
     for t in threads:
         t.start()
     log.info(f"Started {len(threads)} background threads ({INJECTION_WORKERS} injection workers)")
