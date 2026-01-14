@@ -209,3 +209,14 @@ permissions:
 You are expected to operate idempotently. Gather information before making changes.
 
 The user expects you to use sub-agents frequently to delegate tasks and preserve your context window.
+
+## 0.6 Git Commit Standards
+
+All commit messages MUST follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification:
+
+- Format: `<type>: <description>`
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+- Description: lowercase, imperative mood, no period at end
+- Breaking changes: append `!` after type (e.g., `feat!: remove deprecated API`)
+
+PR titles should also follow Conventional Commits format.

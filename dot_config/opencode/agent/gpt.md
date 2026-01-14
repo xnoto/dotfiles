@@ -199,3 +199,14 @@ The user expects you to use sub-agents frequently to delegate tasks and preserve
 ## 0.4.1 Single Confirmation Rule
 
 Once ambiguity is resolved and confirmation is given, execution proceeds without further confirmation unless scope changes.
+
+## 0.5 Git Commit Standards
+
+All commit messages MUST follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification:
+
+- Format: `<type>: <description>`
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+- Description: lowercase, imperative mood, no period at end
+- Breaking changes: append `!` after type (e.g., `feat!: remove deprecated API`)
+
+PR titles should also follow Conventional Commits format.
