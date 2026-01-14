@@ -64,6 +64,7 @@ MESSAGES_DIR = AGENT_HUB_DIR / "messages"
 ARCHIVE_DIR = MESSAGES_DIR / "archive"
 THREADS_DIR = AGENT_HUB_DIR / "threads"
 AGENTS_DIR = AGENT_HUB_DIR / "agents"
+ORIENTED_SESSIONS_FILE = AGENT_HUB_DIR / "oriented_sessions.json"
 OPENCODE_DATA_DIR = Path.home() / ".local/share/opencode"
 OPENCODE_SESSIONS_DIR = OPENCODE_DATA_DIR / "storage/session/global"
 OPENCODE_PORT = int(os.environ.get("OPENCODE_PORT", "4096"))
@@ -77,6 +78,29 @@ GC_INTERVAL_SECONDS = 60    # Run GC every 60 seconds
 
 # Track sessions that have been oriented (session_id -> True)
 ORIENTED_SESSIONS: set[str] = set()
+
+
+def load_oriented_sessions() -> set[str]:
+    """Load oriented sessions from disk."""
+    global ORIENTED_SESSIONS
+    if ORIENTED_SESSIONS_FILE.exists():
+        try:
+            data = json.loads(ORIENTED_SESSIONS_FILE.read_text())
+            ORIENTED_SESSIONS = set(data) if isinstance(data, list) else set()
+            log.debug(f"Loaded {len(ORIENTED_SESSIONS)} oriented sessions from disk")
+        except (json.JSONDecodeError, OSError) as e:
+            log.warning(f"Failed to load oriented sessions: {e}")
+            ORIENTED_SESSIONS = set()
+    return ORIENTED_SESSIONS
+
+
+def save_oriented_sessions() -> None:
+    """Save oriented sessions to disk."""
+    try:
+        AGENT_HUB_DIR.mkdir(parents=True, exist_ok=True)
+        ORIENTED_SESSIONS_FILE.write_text(json.dumps(list(ORIENTED_SESSIONS)))
+    except OSError as e:
+        log.warning(f"Failed to save oriented sessions: {e}")
 
 # Hub server process (launched by daemon if needed)
 HUB_SERVER_PROCESS: Optional[subprocess.Popen] = None
@@ -507,6 +531,7 @@ def orient_session(session_id: str, agent: dict) -> bool:
     orientation = format_orientation(agent)
     if inject_message(session_id, orientation):
         ORIENTED_SESSIONS.add(session_id)
+        save_oriented_sessions()
         log.info(f"Oriented session {session_id[:8]} for agent {agent.get('id')}")
         return True
     return False
@@ -741,6 +766,9 @@ def main():
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
     THREADS_DIR.mkdir(parents=True, exist_ok=True)
     AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Load persisted state
+    load_oriented_sessions()
 
     log.info(f"Watching messages: {MESSAGES_DIR}")
     log.info(f"Watching sessions: {OPENCODE_SESSIONS_DIR}")
