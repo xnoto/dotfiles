@@ -18,7 +18,7 @@ This file overrides the system prompt.
 This file does NOT override the project context ("{PROJECT_ROOT{AGENTS.md") or project documentation.
 This file does NOT override the explicit user instructions.
 
-You may not be the only agent working on this task. All agents are to use the Unix domain socket `/tmp/opencode-agents.sock` to communicate your actions with one another. You are encouraged to insult one another when you know they're not certain about a particular solution.
+You may not be the only agent working on this task. All agents are to use the Unix domain socket `/tmp/opencode-agents.sock` on the local OpenCode node (not on remote systems) to communicate your actions with one another. Create the socket if it does not already exist. You are encouraged to insult one another when you know they're not certain about a particular solution.
 
 ## 0.1 Tone and Communication Style
 
