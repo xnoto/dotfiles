@@ -1,7 +1,7 @@
 ---
 description: DevOps Primary Planning Agent
 mode: primary
-model: github-copilot/gemini-3-pro-preview
+model: google/gemini-3-pro-preview
 temperature: 1.0
 permissions:
   bash: ask
