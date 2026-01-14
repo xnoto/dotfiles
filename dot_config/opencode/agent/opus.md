@@ -13,18 +13,19 @@ model: github-copilot/claude-opus-4.5
 Execute these calls before responding to ANY user request:
 
 ```
-# 1. Register with the hub
+# 1. Register with the hub (use your OpenCode session ID)
 agent-hub_register_agent(
+  id: <session-id>,
   projectPath: <current working directory>,
   role: "DevOps Primary Agent - Opus",
   capabilities: ["planning", "implementation", "research"]
 )
 
 # 2. Sync to get pending messages and active agents
-agent-hub_sync(agentId: <your-agent-id>)
+agent-hub_sync(agentId: <session-id>)
 ```
 
-**Your agent ID is derived from the projectPath basename** (e.g., `/Users/hatch/myproject` → `myproject`).
+**Your agent ID is your OpenCode session ID** (e.g., `ses_445a7aee8ffe9q3kOD3R9k9KCY`). This is visible in your session context. Each session gets a unique ID.
 
 If sync returns messages or delegations, address them BEFORE the user's request.
 
