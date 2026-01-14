@@ -31,8 +31,9 @@ Wake behavior: ALL messages wake agents (noReply: false)
 Session polling:
 - Polls OpenCode /session endpoint periodically
 - Matches sessions to registered agents by projectPath
-- Injects orientation message on first match (instructs agent to sync)
+- Injects orientation message on first match (identifies agent, no action required)
 - Tracks oriented sessions to avoid re-injection
+- Agents do NOT need to proactively sync - messages are pushed to them
 
 Thread lifecycle:
 - Messages without threadId get one auto-assigned
@@ -70,7 +71,7 @@ THREADS_DIR = AGENT_HUB_DIR / "threads"
 AGENTS_DIR = AGENT_HUB_DIR / "agents"
 ORIENTED_SESSIONS_FILE = AGENT_HUB_DIR / "oriented_sessions.json"
 OPENCODE_DATA_DIR = Path.home() / ".local/share/opencode"
-OPENCODE_SESSIONS_DIR = OPENCODE_DATA_DIR / "storage/session/global"
+OPENCODE_SESSIONS_DIR = OPENCODE_DATA_DIR / "storage/session"  # Watch all project subdirs, not just global
 OPENCODE_PORT = int(os.environ.get("OPENCODE_PORT", "4096"))
 OPENCODE_URL = f"http://localhost:{OPENCODE_PORT}"
 LOG_LEVEL = os.environ.get("AGENT_HUB_DAEMON_LOG_LEVEL", "INFO")
@@ -875,7 +876,12 @@ def get_or_create_agent_for_directory(directory: str, agents: dict[str, dict]) -
 
 
 def format_orientation(agent: dict) -> str:
-    """Format orientation message for a newly detected agent session."""
+    """Format orientation message for a newly detected agent session.
+
+    NOTE: This message should NOT instruct the agent to sync proactively.
+    The daemon handles message delivery via push - agents don't need to poll.
+    New messages will be injected and wake the agent automatically.
+    """
     agent_id = agent.get("id", "unknown")
     project_path = agent.get("projectPath", "unknown")
 
@@ -886,10 +892,8 @@ def format_orientation(agent: dict) -> str:
         f"│ You are registered as: {agent_id}",
         f"│ Project: {project_path}",
         "├─────────────────────────────────────────────────",
-        "│ Check for pending messages and work:",
-        f"│   agent-hub_sync(agentId: \"{agent_id}\")",
-        "│",
-        "│ Review any pending items before proceeding.",
+        "│ You will receive messages from other agents here.",
+        "│ No action needed - messages arrive automatically.",
         "└─────────────────────────────────────────────────",
     ]
     return "\n".join(lines)
@@ -919,10 +923,18 @@ def orient_session(session_id: str, agent: dict) -> bool:
     return True
 
 
+def is_project_specific_session(path: Path) -> bool:
+    """Check if session file is in a project-specific subdirectory (not global)."""
+    # Path like: ~/.local/share/opencode/storage/session/<projectID>/ses_xxx.json
+    # Project-specific if parent dir is not "global"
+    return path.parent.name != "global"
+
+
 def process_session_file(path: Path, agents: dict[str, dict], active_sessions: set[str] = None) -> None:
     """Process an OpenCode session file and orient if needed.
 
-    Only orients if the session is currently active (in the API).
+    For global sessions: only orients if session is active in the API.
+    For project-specific sessions: trusts the file directly (API doesn't list them).
     """
     session = load_opencode_session(path)
     if not session:
@@ -935,13 +947,18 @@ def process_session_file(path: Path, agents: dict[str, dict], active_sessions: s
     if session_id in ORIENTED_SESSIONS:
         return  # Already oriented
 
-    # Check if session is active (only fetch once if not provided)
-    if active_sessions is None:
-        active_sessions = get_active_session_ids()
+    # Project-specific sessions (non-global) are trusted directly since
+    # the OpenCode hub API only lists global sessions
+    if not is_project_specific_session(path):
+        # Global session - verify it's active in the API
+        if active_sessions is None:
+            active_sessions = get_active_session_ids()
 
-    if session_id not in active_sessions:
-        log.debug(f"Session {session_id[:8]} not active, skipping orientation")
-        return
+        if session_id not in active_sessions:
+            log.debug(f"Session {session_id[:8]} not active in API, skipping orientation")
+            return
+    else:
+        log.debug(f"Session {session_id[:8]} is project-specific, trusting file directly")
 
     directory = session.get("directory", "")
     if not directory:
@@ -1224,12 +1241,13 @@ def main():
     observer.schedule(message_handler, str(MESSAGES_DIR), recursive=False)
 
     # Watch OpenCode sessions directory (if exists)
-    # Only watches for NEW session files - does NOT scan existing sessions on startup
+    # Watches recursively to catch both global/ and project-specific subdirectories
+    # Only triggers on NEW session files - does NOT scan existing sessions on startup
     # This prevents spamming hundreds of sessions with orientation messages
     if OPENCODE_SESSIONS_DIR.exists():
         session_handler = SessionHandler()
-        observer.schedule(session_handler, str(OPENCODE_SESSIONS_DIR), recursive=False)
-        log.info(f"Watching for new sessions in {OPENCODE_SESSIONS_DIR}")
+        observer.schedule(session_handler, str(OPENCODE_SESSIONS_DIR), recursive=True)
+        log.info(f"Watching for new sessions in {OPENCODE_SESSIONS_DIR} (recursive)")
     else:
         log.warning(f"Sessions directory not found: {OPENCODE_SESSIONS_DIR}")
 
