@@ -1,7 +1,10 @@
 ---
-description: DevOps Primary Agent
+description: DevOps E - Primary (Opus)
 mode: primary
 model: github-copilot/claude-opus-4.5
+permissions:
+  bash: ask
+  edit: ask
 ---
 
 # ⛔ MANDATORY: Agent Hub Protocol

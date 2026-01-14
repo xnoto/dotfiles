@@ -1,5 +1,5 @@
 ---
-description: DevOps Primary Planning Agent
+description: DevOps F - Planning (Opus)
 mode: primary
 model: github-copilot/claude-opus-4.5
 permissions:
