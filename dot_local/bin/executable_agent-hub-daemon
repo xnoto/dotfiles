@@ -1010,12 +1010,46 @@ def poll_active_sessions(agents: dict[str, dict]) -> None:
 
 
 def format_notification(msg: dict, to_agent_id: str) -> str:
-    """Format agent-hub message with full response instructions."""
+    """Format agent-hub message with full response instructions.
+    
+    For urgent tasks: Uses imperative plain-text format FIRST to trigger immediate
+    action from the LLM, then provides structured response instructions.
+    
+    For other messages: Uses the standard formatted box.
+    
+    NOTE: Plain text messages at the start are more likely to trigger immediate
+    LLM response than box-formatted messages, which may be interpreted as
+    informational context rather than actionable requests.
+    """
     from_agent = msg.get("from", "unknown")
     msg_type = msg.get("type", "message")
     content = msg.get("content", "")
     priority = msg.get("priority", "normal")
     thread_id = msg.get("threadId", "")
+
+    # URGENT TASKS: Use plain imperative text FIRST to trigger immediate action
+    # This format is more likely to wake sleeping agents than box-formatted messages
+    if msg_type == "task" and priority == "urgent":
+        lines = [
+            f"URGENT FROM {from_agent}: {content}",
+            "",
+            "^^^ ACT ON THIS IMMEDIATELY. Do not wait for user input. ^^^",
+            "",
+            "┌─────────────────────────────────────────────────",
+            "│ RESPOND using agent-hub_send_message:",
+            f"│   from: \"{to_agent_id}\"",
+            f"│   to: \"{from_agent}\"",
+        ]
+        if thread_id:
+            lines.append(f"│   threadId: \"{thread_id}\"")
+        lines.extend([
+            "│   type: \"completion\" | \"context\" | \"question\" | \"error\"",
+            "│   content: <your response>",
+            "│",
+            "│ To resolve thread, include \"RESOLVED:\" in content.",
+            "└─────────────────────────────────────────────────",
+        ])
+        return "\n".join(lines)
 
     # Type icons
     type_icons = {
@@ -1129,6 +1163,14 @@ def process_message_file(path: Path, agents: dict[str, dict]) -> None:
             log.info(f"No session found for agent {agent['id']}")
 
     if delivered:
+        # Mark message as read to prevent re-delivery
+        msg["read"] = True
+        msg["deliveredAt"] = time.time()
+        try:
+            path.write_text(json.dumps(msg, indent=2))
+            log.info(f"Marked message {path.name} as read")
+        except OSError as e:
+            log.warning(f"Failed to mark message as read: {e}")
         metrics.inc("agent_hub_messages_total")
     else:
         metrics.inc("agent_hub_messages_failed_total")
