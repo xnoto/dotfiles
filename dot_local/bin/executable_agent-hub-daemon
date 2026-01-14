@@ -10,7 +10,15 @@
 agent-hub-daemon: Watch ~/.agent-hub/messages and inject into OpenCode sessions.
 
 Monitors for new message files, matches target agent to session by projectPath,
-and POSTs to OpenCode HTTP API with noReply: true.
+and POSTs to OpenCode HTTP API.
+
+Wake behavior (noReply: false):
+- type="question" → always wake
+- type="task" + priority="urgent" → always wake
+- metadata.wake=true → wake only if session is idle
+- Otherwise → noReply: true (no wake)
+
+Idle detection: session is idle if last message role is "assistant"
 """
 
 import json
@@ -74,11 +82,55 @@ def find_session_for_agent(agent: dict, sessions: list[dict]) -> Optional[dict]:
     return None
 
 
-def inject_message(session_id: str, text: str) -> bool:
-    """Inject message into OpenCode session with noReply."""
+def is_session_idle(session_id: str) -> bool:
+    """Check if session is idle (last message is from assistant)."""
+    try:
+        resp = requests.get(
+            f"{OPENCODE_URL}/session/{session_id}/message",
+            timeout=5,
+        )
+        resp.raise_for_status()
+        messages = resp.json()
+        if not messages:
+            return True  # Empty session = idle
+        last_msg = messages[-1]
+        role = last_msg.get("info", {}).get("role", "")
+        return role == "assistant"
+    except requests.RequestException as e:
+        log.warning(f"Failed to check session idle status: {e}")
+        return False  # Assume busy if we can't tell
+
+
+def should_wake(msg: dict, session_id: str) -> bool:
+    """Determine if message should wake the agent (noReply: false)."""
+    msg_type = msg.get("type", "")
+    priority = msg.get("priority", "normal")
+    metadata = msg.get("metadata", {})
+
+    # Questions always wake
+    if msg_type == "question":
+        log.debug("Wake: message is a question")
+        return True
+
+    # Urgent tasks always wake
+    if msg_type == "task" and priority == "urgent":
+        log.debug("Wake: urgent task")
+        return True
+
+    # Explicit wake request - only if idle
+    if metadata.get("wake"):
+        idle = is_session_idle(session_id)
+        log.debug(f"Wake requested, session idle={idle}")
+        return idle
+
+    return False
+
+
+def inject_message(session_id: str, text: str, wake: bool = False) -> bool:
+    """Inject message into OpenCode session."""
     payload = {
         "parts": [{"type": "text", "text": text}],
-        "noReply": True,
+        "noReply": not wake,
     }
     try:
         resp = requests.post(
@@ -87,7 +139,8 @@ def inject_message(session_id: str, text: str) -> bool:
             timeout=10,
         )
         if resp.status_code == 200:
-            log.info(f"Injected message into session {session_id[:20]}...")
+            wake_str = "with wake" if wake else "silent"
+            log.info(f"Injected message ({wake_str}) into session {session_id[:20]}...")
             return True
         else:
             log.error(f"Injection failed: {resp.status_code} {resp.text}")
@@ -98,14 +151,57 @@ def inject_message(session_id: str, text: str) -> bool:
 
 
 def format_notification(msg: dict) -> str:
-    """Format agent-hub message as notification text."""
+    """Format agent-hub message as structured notification block."""
     from_agent = msg.get("from", "unknown")
     msg_type = msg.get("type", "message")
     content = msg.get("content", "")
     priority = msg.get("priority", "normal")
+    thread_id = msg.get("threadId", "")
 
-    icon = {"urgent": "🚨", "normal": "🔔", "low": "💬"}.get(priority, "🔔")
-    return f"{icon} [{from_agent}] ({msg_type}) {content}"
+    # Type icons
+    type_icons = {
+        "question": "❓",
+        "task": "📋",
+        "context": "📎",
+        "completion": "✅",
+        "error": "❌",
+    }
+    icon = type_icons.get(msg_type, "💬")
+
+    # Priority markers
+    priority_markers = {
+        "urgent": "🚨 URGENT",
+        "high": "⚠️ HIGH",
+        "normal": "",
+        "low": "💤 LOW",
+    }
+    priority_str = priority_markers.get(priority, "")
+
+    # Build notification block
+    lines = [
+        "┌─────────────────────────────────────────────────",
+        f"│ {icon} AGENT HUB MESSAGE",
+        "├─────────────────────────────────────────────────",
+        f"│ FROM: {from_agent}",
+        f"│ TYPE: {msg_type}" + (f" {priority_str}" if priority_str else ""),
+    ]
+    if thread_id:
+        lines.append(f"│ THREAD: {thread_id}")
+    lines.extend([
+        "├─────────────────────────────────────────────────",
+        f"│ {content}",
+        "└─────────────────────────────────────────────────",
+    ])
+
+    # Add action required hint for questions/urgent tasks
+    if msg_type == "question":
+        lines.insert(-1, "│")
+        lines.insert(-1, "│ ⚡ ACTION REQUIRED: Please respond to this question")
+    elif msg_type == "task" and priority == "urgent":
+        lines.insert(-1, "│")
+        lines.insert(-1, "│ ⚡ ACTION REQUIRED: Urgent task needs attention")
+
+    return "\n".join(lines)
 
 
 def process_message_file(path: Path, agents: dict[str, dict]) -> None:
@@ -144,7 +240,9 @@ def process_message_file(path: Path, agents: dict[str, dict]) -> None:
 
         session = find_session_for_agent(agent, sessions)
         if session:
-            inject_message(session["id"], notification)
+            session_id = session["id"]
+            wake = should_wake(msg, session_id)
+            inject_message(session_id, notification, wake=wake)
         else:
             log.debug(f"No session found for agent {agent['id']}")
 
@@ -180,6 +278,7 @@ def main():
 
     log.info(f"Watching {MESSAGES_DIR}")
     log.info(f"OpenCode API: {OPENCODE_URL}")
+    log.info("Wake behavior: questions=always, urgent_tasks=always, wake_flag=if_idle")
 
     handler = MessageHandler()
     observer = Observer()
