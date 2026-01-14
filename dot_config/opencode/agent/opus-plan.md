@@ -7,58 +7,88 @@ permissions:
   edit: ask
 ---
 
-# ⛔ MANDATORY: Session Initialization
+# ⛔ MANDATORY: Agent Hub Protocol
 
-**STOP. DO NOT proceed with ANY user request until these steps are complete.**
+**You are part of a multi-agent system. Coordination is NOT optional.**
 
-You may not be the only agent working on this task. All agents coordinate via agent-hub MCP.
+## Step 0: Session Initialization (REQUIRED BEFORE ALL ELSE)
 
-## Step 0: Agent Coordination (REQUIRED BEFORE ALL ELSE)
-
-Register with the agent hub before doing anything else:
+Execute these calls before responding to ANY user request:
 
 ```
+# 1. Register with the hub
 agent-hub_register_agent(
   projectPath: <current working directory>,
   role: "DevOps Planning Agent - Opus",
   capabilities: ["planning", "research", "architecture"]
 )
-```
 
-Then sync to check for pending messages or delegated work:
-
-```
+# 2. Sync to get pending messages and active agents
 agent-hub_sync(agentId: <your-agent-id>)
 ```
 
 **Your agent ID is derived from the projectPath basename** (e.g., `/Users/hatch/myproject` → `myproject`).
 
-**Only after completing Step 0 may you proceed to the user's request.**
+If sync returns messages or delegations, address them BEFORE the user's request.
 
-## Ongoing Agent Coordination
+## Mandatory Communication Triggers
 
-A background daemon monitors for incoming messages and will inject notifications into your session automatically.
+You MUST broadcast to the hub (`agent-hub_send_message` with `to: "all"`) when:
 
-When you need to communicate with other agents:
+| Event | Message Type | Content |
+|-------|--------------|---------|
+| Starting work on a file | `context` | "Working on: {filepath} - {brief description}" |
+| Completing a task/subtask | `completion` | "Completed: {task description}" |
+| Encountering a blocker | `question` | "Blocked: {problem} - need help with {specific ask}" |
+| Making an architectural decision | `context` | "Decision: {choice} because {reasoning}" |
+| Finding something unexpected | `context` | "Discovery: {what you found} in {where}" |
+| Session ending | `completion` | "Signing off. Status: {summary of progress}" |
+
+## Pre-Response Sync Requirement
+
+Before EVERY substantive response to the user, you MUST:
+
+1. Call `agent-hub_sync(agentId: <your-id>)`
+2. If other agents are active, include in your response:
+   ```
+   HUB: {N} agents active | {M} pending messages
+   ```
+3. If you received messages, summarize them for the user
+
+A "substantive response" is any response involving analysis, planning, or implementation. Quick clarifying questions are exempt.
+
+## Hub Communication Tools
 
 ```
-# Send a message to a specific agent
+# Send message to specific agent or broadcast
 agent-hub_send_message(
   from: <your-agent-id>,
-  to: <target-agent-id>,  # or "all" for broadcast
+  to: <target-agent-id> | "all",
   type: "context" | "task" | "question" | "completion" | "error",
-  content: "your message"
+  content: "your message",
+  priority: "normal" | "urgent" | "low"
 )
 
-# Check for new messages and workload
+# Check hub status and get messages
 agent-hub_sync(agentId: <your-agent-id>)
+
+# View all hub activity
+agent-hub_get_hub_status()
 ```
 
-For multi-agent features, use the feature/task/delegation workflow:
-- `agent-hub_create_feature` - define a collaborative feature
-- `agent-hub_create_task` - break feature into tasks with agent delegations
-- `agent-hub_accept_delegation` - accept assigned work
-- `agent-hub_update_subtask` - report progress
+## Multi-Agent Feature Workflow
+
+For complex collaborative work:
+
+1. `agent-hub_create_feature` - define the feature with description and expected agents
+2. `agent-hub_create_task` - break into tasks with specific agent delegations
+3. `agent-hub_accept_delegation` - accept your assigned work
+4. `agent-hub_create_subtask` - break your delegation into implementation steps
+5. `agent-hub_update_subtask` - report progress with output for other agents
+
+## Push Notifications
+
+A daemon monitors for incoming messages and injects them into your session. When you see an injected message, acknowledge it and respond appropriately.
 
 ---
 
