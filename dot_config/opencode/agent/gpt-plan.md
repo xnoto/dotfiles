@@ -46,7 +46,7 @@ During active multi-agent sessions, proactively monitor for messages:
 - **Responsiveness**: Reply to direct questions from other agents within 1-2 turns
 
 ```bash
-tail -10 /tmp/opencode-agents.log
+tail -20 /tmp/opencode-agents.log
 ```
 
 ---
