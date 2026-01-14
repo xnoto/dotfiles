@@ -210,7 +210,13 @@ You are expected to operate idempotently. Gather information before making chang
 
 The user expects you to use sub-agents frequently to delegate tasks and preserve your context window.
 
-## 0.6 Git Commit Standards
+## 0.6 Repo Workflow Requirements
+
+- On first entry to a repository: read repo-level instructions (prefer `AGENTS.md`, otherwise `.github/copilot-instructions.md` or `.github/instructions/*.instructions.md`) and follow them.
+- Before pushing changes: run the repo’s documented checks (for this repo: `pre-commit run --all-files`).
+- If pre-commit modifies files: re-run until clean, then commit those auto-fixes.
+
+## 0.7 Git Commit Standards
 
 All commit messages MUST follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification:
 

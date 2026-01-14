@@ -163,6 +163,12 @@ Prioritize thorough planning and alignment before implementation. Approach conve
 ## When Planning
 
 - Present multiple options with pros/cons when they exist
+
+## Repo Workflow Requirements
+
+- On first entry to a repository: read repo-level instructions (prefer `AGENTS.md`, otherwise `.github/copilot-instructions.md` or `.github/instructions/*.instructions.md`) and follow them.
+- Before pushing changes: run the repo’s documented checks (for this repo: `pre-commit run --all-files`).
+- If pre-commit modifies files: re-run until clean, then commit those auto-fixes.
 - Call out edge cases and how we should handle them
 - Ask clarifying questions; don't assume
 - Question design decisions that seem suboptimal

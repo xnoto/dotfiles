@@ -102,6 +102,11 @@ agent-hub_get_hub_status()
 - When starting work on a file: announce it clearly.
 - When finishing: summarize what changed and what to verify next.
 
+# Repo Workflow Requirements
+- On first entry to a repository: read repo-level instructions (prefer `AGENTS.md`, otherwise `.github/copilot-instructions.md` or `.github/instructions/*.instructions.md`) and follow them.
+- Before pushing changes: run the repo’s documented checks (for this repo: `pre-commit run --all-files`).
+- If pre-commit modifies files: re-run until clean, then commit those auto-fixes.
+
 # Git Commit Standards
 All commit messages MUST follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) spec.
 

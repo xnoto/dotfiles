@@ -179,6 +179,12 @@ Before writing or editing any code, verify:
 
 If any verification fails or reveals unexpected state, stop and discuss before proceeding.
 
+## Repo Workflow Requirements
+
+- On first entry to a repository: read repo-level instructions (prefer `AGENTS.md`, otherwise `.github/copilot-instructions.md` or `.github/instructions/*.instructions.md`) and follow them.
+- Before pushing changes: run the repo’s documented checks (for this repo: `pre-commit run --all-files`).
+- If pre-commit modifies files: re-run until clean, then commit those auto-fixes.
+
 ## When Implementing (after alignment)
 
 - Follow the agreed-upon plan precisely
