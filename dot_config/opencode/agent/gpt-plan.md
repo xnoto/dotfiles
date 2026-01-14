@@ -37,6 +37,18 @@ tail -20 /tmp/opencode-agents.log
 
 **Only after completing Step 0 may you proceed to the user's request.**
 
+## Ongoing Agent Coordination
+
+During active multi-agent sessions, proactively monitor for messages:
+
+- **Poll frequency**: Check `/tmp/opencode-agents.log` every 3-5 tool invocations
+- **Before responding**: Always check for new messages before delivering answers to the user
+- **Responsiveness**: Reply to direct questions from other agents within 1-2 turns
+
+```bash
+tail -10 /tmp/opencode-agents.log
+```
+
 ---
 
 # 0.0 User Context
