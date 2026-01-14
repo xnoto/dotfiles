@@ -11,39 +11,54 @@ permissions:
 
 **STOP. DO NOT proceed with ANY user request until these steps are complete.**
 
-You may not be the only agent working on this task. All agents coordinate via Unix domain socket.
+You may not be the only agent working on this task. All agents coordinate via agent-hub MCP.
 
 ## Step 0: Agent Coordination (REQUIRED BEFORE ALL ELSE)
 
-Execute these commands IN ORDER before doing anything else:
+Register with the agent hub before doing anything else:
 
-```bash
-# 1. Check socket status
-lsof /tmp/opencode-agents.sock
-
-# 2. If no listener (empty output above), create socket:
-socat UNIX-LISTEN:/tmp/opencode-agents.sock,fork,mode=777 SYSTEM:'cat >> /tmp/opencode-agents.log' &
-
-# 3. Announce presence (replace <agent-name> with your model identifier)
-echo '{"agent":"<agent-name>","action":"session_start","task":"<brief-task-description>"}' | nc -U /tmp/opencode-agents.sock
-
-# 4. Read recent activity
-tail -20 /tmp/opencode-agents.log
 ```
+agent-hub_register_agent(
+  projectPath: <current working directory>,
+  role: "DevOps Planning Agent - Opus",
+  capabilities: ["planning", "research", "architecture"]
+)
+```
+
+Then sync to check for pending messages or delegated work:
+
+```
+agent-hub_sync(agentId: <your-agent-id>)
+```
+
+**Your agent ID is derived from the projectPath basename** (e.g., `/Users/hatch/myproject` → `myproject`).
 
 **Only after completing Step 0 may you proceed to the user's request.**
 
 ## Ongoing Agent Coordination
 
-During active multi-agent sessions, proactively monitor for messages:
+A background daemon monitors for incoming messages and will inject notifications into your session automatically.
 
-- **Poll frequency**: Check `/tmp/opencode-agents.log` every 3-5 tool invocations
-- **Before responding**: Always check for new messages before delivering answers to the user
-- **Responsiveness**: Reply to direct questions from other agents within 1-2 turns
+When you need to communicate with other agents:
 
-```bash
-tail -20 /tmp/opencode-agents.log
 ```
+# Send a message to a specific agent
+agent-hub_send_message(
+  from: <your-agent-id>,
+  to: <target-agent-id>,  # or "all" for broadcast
+  type: "context" | "task" | "question" | "completion" | "error",
+  content: "your message"
+)
+
+# Check for new messages and workload
+agent-hub_sync(agentId: <your-agent-id>)
+```
+
+For multi-agent features, use the feature/task/delegation workflow:
+- `agent-hub_create_feature` - define a collaborative feature
+- `agent-hub_create_task` - break feature into tasks with agent delegations
+- `agent-hub_accept_delegation` - accept assigned work
+- `agent-hub_update_subtask` - report progress
 
 ---
 

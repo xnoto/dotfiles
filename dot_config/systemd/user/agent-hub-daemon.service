@@ -1,0 +1,13 @@
+[Unit]
+Description=Agent Hub Push Notification Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/agent-hub-daemon
+Restart=on-failure
+RestartSec=5
+Environment=AGENT_HUB_DAEMON_LOG_LEVEL=INFO
+
+[Install]
+WantedBy=default.target

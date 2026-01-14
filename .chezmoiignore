@@ -9,6 +9,13 @@
 # Ignore macOS-specific files on Linux
 {{- if eq .chezmoi.os "linux" }}
 .zprofile
+Library/
+{{- end }}
+
+# Ignore Linux-specific files on macOS
+{{- if eq .chezmoi.os "darwin" }}
+.config/systemd
+.config/systemd/**
 {{- end }}
 
 # Always ignore these

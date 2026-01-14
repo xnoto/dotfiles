@@ -1,0 +1,199 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "requests",
+#     "watchdog",
+# ]
+# ///
+"""
+agent-hub-daemon: Watch ~/.agent-hub/messages and inject into OpenCode sessions.
+
+Monitors for new message files, matches target agent to session by projectPath,
+and POSTs to OpenCode HTTP API with noReply: true.
+"""
+
+import json
+import logging
+import os
+import time
+from pathlib import Path
+from typing import Optional
+
+import requests
+from watchdog.events import FileSystemEventHandler, FileCreatedEvent
+from watchdog.observers import Observer
+
+# Configuration
+AGENT_HUB_DIR = Path.home() / ".agent-hub"
+MESSAGES_DIR = AGENT_HUB_DIR / "messages"
+AGENTS_DIR = AGENT_HUB_DIR / "agents"
+OPENCODE_PORT = int(os.environ.get("OPENCODE_PORT", "4096"))
+OPENCODE_URL = f"http://localhost:{OPENCODE_PORT}"
+LOG_LEVEL = os.environ.get("AGENT_HUB_DAEMON_LOG_LEVEL", "INFO")
+
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL),
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger(__name__)
+
+
+def load_agents() -> dict[str, dict]:
+    """Load all registered agents, keyed by agent ID."""
+    agents = {}
+    if not AGENTS_DIR.exists():
+        return agents
+    for f in AGENTS_DIR.glob("*.json"):
+        try:
+            agent = json.loads(f.read_text())
+            agents[agent["id"]] = agent
+        except (json.JSONDecodeError, KeyError) as e:
+            log.warning(f"Failed to load agent {f}: {e}")
+    return agents
+
+
+def get_sessions() -> list[dict]:
+    """Fetch active OpenCode sessions."""
+    try:
+        resp = requests.get(f"{OPENCODE_URL}/session", timeout=5)
+        resp.raise_for_status()
+        return resp.json()
+    except requests.RequestException as e:
+        log.error(f"Failed to fetch sessions: {e}")
+        return []
+
+
+def find_session_for_agent(agent: dict, sessions: list[dict]) -> Optional[dict]:
+    """Match agent to session by projectPath == directory."""
+    agent_path = agent.get("projectPath", "")
+    for session in sessions:
+        if session.get("directory") == agent_path:
+            return session
+    return None
+
+
+def inject_message(session_id: str, text: str) -> bool:
+    """Inject message into OpenCode session with noReply."""
+    payload = {
+        "parts": [{"type": "text", "text": text}],
+        "noReply": True,
+    }
+    try:
+        resp = requests.post(
+            f"{OPENCODE_URL}/session/{session_id}/message",
+            json=payload,
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            log.info(f"Injected message into session {session_id[:20]}...")
+            return True
+        else:
+            log.error(f"Injection failed: {resp.status_code} {resp.text}")
+            return False
+    except requests.RequestException as e:
+        log.error(f"Injection request failed: {e}")
+        return False
+
+
+def format_notification(msg: dict) -> str:
+    """Format agent-hub message as notification text."""
+    from_agent = msg.get("from", "unknown")
+    msg_type = msg.get("type", "message")
+    content = msg.get("content", "")
+    priority = msg.get("priority", "normal")
+
+    icon = {"urgent": "🚨", "normal": "🔔", "low": "💬"}.get(priority, "🔔")
+    return f"{icon} [{from_agent}] ({msg_type}) {content}"
+
+
+def process_message_file(path: Path, agents: dict[str, dict]) -> None:
+    """Process a new message file and inject if applicable."""
+    try:
+        msg = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        log.warning(f"Failed to read message {path}: {e}")
+        return
+
+    # Determine target agent(s)
+    to = msg.get("to", "")
+    if to == "all":
+        target_agents = list(agents.values())
+    elif to in agents:
+        target_agents = [agents[to]]
+    else:
+        log.debug(f"Unknown target agent: {to}")
+        return
+
+    # Skip if already read
+    if msg.get("read"):
+        return
+
+    sessions = get_sessions()
+    if not sessions:
+        log.debug("No active sessions")
+        return
+
+    notification = format_notification(msg)
+
+    for agent in target_agents:
+        # Don't notify sender
+        if agent["id"] == msg.get("from"):
+            continue
+
+        session = find_session_for_agent(agent, sessions)
+        if session:
+            inject_message(session["id"], notification)
+        else:
+            log.debug(f"No session found for agent {agent['id']}")
+
+
+class MessageHandler(FileSystemEventHandler):
+    """Handle new message files."""
+
+    def __init__(self):
+        self.agents = load_agents()
+        self._last_reload = time.time()
+
+    def on_created(self, event: FileCreatedEvent) -> None:
+        if event.is_directory:
+            return
+        path = Path(event.src_path)
+        if path.suffix != ".json":
+            return
+
+        # Reload agents periodically
+        if time.time() - self._last_reload > 60:
+            self.agents = load_agents()
+            self._last_reload = time.time()
+
+        log.debug(f"New message file: {path.name}")
+        # Small delay to ensure file is fully written
+        time.sleep(0.1)
+        process_message_file(path, self.agents)
+
+
+def main():
+    # Ensure directories exist
+    MESSAGES_DIR.mkdir(parents=True, exist_ok=True)
+
+    log.info(f"Watching {MESSAGES_DIR}")
+    log.info(f"OpenCode API: {OPENCODE_URL}")
+
+    handler = MessageHandler()
+    observer = Observer()
+    observer.schedule(handler, str(MESSAGES_DIR), recursive=False)
+    observer.start()
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        log.info("Shutting down")
+        observer.stop()
+    observer.join()
+
+
+if __name__ == "__main__":
+    main()
