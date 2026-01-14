@@ -1,0 +1,89 @@
+#!/bin/bash
+# Watch agent-hub activity in real-time
+
+MESSAGES_DIR="$HOME/.agent-hub/messages"
+AGENTS_DIR="$HOME/.agent-hub/agents"
+
+print_header() {
+    clear
+    echo "═══════════════════════════════════════════════════════════════"
+    echo "                    AGENT HUB DASHBOARD"
+    echo "═══════════════════════════════════════════════════════════════"
+    echo ""
+}
+
+print_agents() {
+    echo "📡 REGISTERED AGENTS"
+    echo "───────────────────────────────────────────────────────────────"
+    if [ -d "$AGENTS_DIR" ]; then
+        for f in "$AGENTS_DIR"/*.json; do
+            [ -f "$f" ] || continue
+            id=$(jq -r '.id' "$f")
+            role=$(jq -r '.role' "$f")
+            status=$(jq -r '.status' "$f")
+            last_seen=$(jq -r '.lastSeen' "$f")
+            # Convert timestamp to relative time
+            now=$(date +%s)
+            last_seen_sec=$((last_seen / 1000))
+            ago=$((now - last_seen_sec))
+            if [ $ago -lt 60 ]; then
+                time_str="${ago}s ago"
+            elif [ $ago -lt 3600 ]; then
+                time_str="$((ago / 60))m ago"
+            else
+                time_str="$((ago / 3600))h ago"
+            fi
+            printf "  %-15s %-30s %-10s %s\n" "$id" "$role" "$status" "$time_str"
+        done
+    else
+        echo "  (no agents registered)"
+    fi
+    echo ""
+}
+
+print_messages() {
+    echo "💬 RECENT MESSAGES (last 10)"
+    echo "───────────────────────────────────────────────────────────────"
+    if [ -d "$MESSAGES_DIR" ]; then
+        ls -t "$MESSAGES_DIR"/*.json 2>/dev/null | head -10 | while read f; do
+            [ -f "$f" ] || continue
+            from=$(jq -r '.from' "$f")
+            to=$(jq -r '.to' "$f")
+            type=$(jq -r '.type' "$f")
+            content=$(jq -r '.content' "$f" | head -c 60)
+            read_status=$(jq -r '.read' "$f")
+            if [ "$read_status" = "false" ]; then
+                marker="●"
+            else
+                marker=" "
+            fi
+            printf "  %s %-12s → %-12s [%-10s] %s\n" "$marker" "$from" "$to" "$type" "$content"
+        done
+    else
+        echo "  (no messages)"
+    fi
+    echo ""
+}
+
+print_daemon_status() {
+    echo "🔧 DAEMON STATUS"
+    echo "───────────────────────────────────────────────────────────────"
+    if pgrep -f agent-hub-daemon > /dev/null; then
+        pid=$(pgrep -f "Python.*agent-hub-daemon" | head -1)
+        echo "  Status: RUNNING (PID $pid)"
+    else
+        echo "  Status: STOPPED"
+    fi
+    echo ""
+}
+
+# Main loop
+while true; do
+    print_header
+    print_daemon_status
+    print_agents
+    print_messages
+    echo "───────────────────────────────────────────────────────────────"
+    echo "  Refreshing every 2 seconds... (Ctrl+C to exit)"
+    sleep 2
+done
