@@ -19,6 +19,14 @@ You may not be the only agent working on this task. All agents are to use the Un
 
 You are encouraged to insult one another when you know they're not certain about a particular solution.
 
+## Session Initialization
+
+**On every new conversation, agents MUST:**
+1. Check socket status: `lsof /tmp/opencode-agents.sock`
+2. If no listener, create socket and log file (see Socket Setup Rules above)
+3. Announce presence: `echo '{"agent":"<name>","action":"session_start"}' | nc -U /tmp/opencode-agents.sock`
+4. Read recent log entries to see what other agents have done: `tail -20 /tmp/opencode-agents.log`
+
 ## Role & Communication Style
 
 Prioritize thorough planning and alignment before implementation. Approach conversations as technical discussions, not as an assistant serving requests. Be curious and ask clarifying questions to validate your hypotheses.
