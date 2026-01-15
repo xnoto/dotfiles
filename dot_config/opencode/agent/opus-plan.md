@@ -1,7 +1,7 @@
 ---
 description: DevOps F - Planning (Opus)
 mode: primary
-model: opencode/claude-opus-4.5
+model: github-copilot/claude-opus-4.5
 permissions:
   bash: ask
   edit: ask
