@@ -719,21 +719,28 @@ def find_sessions_for_agent(agent: dict, sessions: list[dict]) -> list[dict]:
 
 
 def inject_message_sync(session_id: str, text: str) -> bool:
-    """Inject message into OpenCode session (synchronous, with retries)."""
+    """Inject message into OpenCode session (synchronous, with retries).
+    
+    Uses /prompt_async endpoint which triggers LLM invocation even when idle.
+    The /message endpoint with noReply:false only adds to context without
+    actually invoking the LLM when the session is idle.
+    """
     payload = {
         "parts": [{"type": "text", "text": text}],
-        "noReply": False,  # Always wake - daemon controls coordination
     }
 
     for attempt in range(INJECTION_RETRIES):
         try:
+            # Use prompt_async to actually trigger LLM invocation
+            # The /message endpoint only adds to context, doesn't wake idle sessions
             resp = requests.post(
-                f"{OPENCODE_URL}/session/{session_id}/message",
+                f"{OPENCODE_URL}/session/{session_id}/prompt_async",
                 json=payload,
                 timeout=INJECTION_TIMEOUT,
             )
-            if resp.status_code == 200:
-                log.info(f"Injected message into session {session_id[:8]}...")
+            # prompt_async returns 204 No Content on success
+            if resp.status_code in (200, 204):
+                log.info(f"Injected message into session {session_id[:8]}... (prompt_async)")
                 metrics.inc("agent_hub_injections_total")
                 return True
             else:
