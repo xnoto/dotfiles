@@ -1,0 +1,10 @@
+[user]
+	name = xnoto
+	email = steven@makeitwork.cloud
+	signingkey = {{ .chezmoi.homeDir }}/.ssh/signing_key.pub
+[gpg]
+	format = ssh
+[commit]
+	gpgsign = true
+[tag]
+	gpgsign = true
