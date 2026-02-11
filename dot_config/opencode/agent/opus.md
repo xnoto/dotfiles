@@ -1,7 +1,7 @@
 ---
 description: DevOps E - Primary (Opus)
 mode: primary
-model: anthropic/claude-opus-4-6
+model: github-copilot/claude-opus-4.6
 permissions:
   bash: ask
   edit: ask
