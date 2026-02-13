@@ -6,19 +6,16 @@
 .bashrc.d/**
 .local/share/fonts
 .local/share/fonts/**
+.config/systemd
+.config/systemd/**
 {{- end }}
 
 # Ignore macOS-specific files on Linux
 {{- if eq .chezmoi.os "linux" }}
+.aerospace.toml
 .zprofile
 Library
 Library/**
-{{- end }}
-
-# Ignore Linux-specific files on macOS
-{{- if eq .chezmoi.os "darwin" }}
-.config/systemd
-.config/systemd/**
 {{- end }}
 
 # Always ignore these
