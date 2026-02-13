@@ -1,7 +1,7 @@
 ---
 description: DevOps C - Primary (GPT)
 mode: primary
-model: openai/gpt-5.3-codex
+model: openai/gpt-5.3-codex-spark
 permissions:
   bash: ask
   edit: ask
