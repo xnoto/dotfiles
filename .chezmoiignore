@@ -4,12 +4,15 @@
 .config/i3/**
 .bashrc.d
 .bashrc.d/**
+.local/share/fonts
+.local/share/fonts/**
 {{- end }}
 
 # Ignore macOS-specific files on Linux
 {{- if eq .chezmoi.os "linux" }}
 .zprofile
-Library/
+Library
+Library/**
 {{- end }}
 
 # Ignore Linux-specific files on macOS
