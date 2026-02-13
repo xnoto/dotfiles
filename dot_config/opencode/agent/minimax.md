@@ -1,7 +1,7 @@
 ---
 description: DevOps D - Primary (MiniMax)
 mode: primary
-model: opencode/minimax-m2.5-free
+model: minimax-coding-plan/MiniMax-M2.5
 permissions:
   bash: ask
   edit: ask
