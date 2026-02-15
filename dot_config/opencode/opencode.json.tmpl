@@ -30,7 +30,7 @@
     }
   },
   "mcp": {
-    "mcp-optional-linear": {
+    "linear": {
       "type": "local",
       "command": [
         "bunx",
@@ -39,7 +39,7 @@
       ],
       "enabled": true
     },
-    "mcp-optional-notion": {
+    "notion": {
       "type": "local",
       "command": [
         "bunx",
@@ -48,7 +48,7 @@
       ],
       "enabled": true
     },
-    "mcp-optional-aws-api-staging": {
+    "aws-api-staging": {
       "type": "local",
       "command": [
         "uvx",
@@ -61,7 +61,7 @@
         "AWS_API_MCP_PROFILE_NAME": "staging"
       }
     },
-    "mcp-optional-aws-api-prod": {
+    "aws-api-prod": {
       "type": "local",
       "command": [
         "uvx",
@@ -74,7 +74,7 @@
         "AWS_API_MCP_PROFILE_NAME": "prod"
       }
     },
-    "mcp-optional-aws-doc": {
+    "aws-doc": {
       "type": "local",
       "command": [
         "uvx",
@@ -86,7 +86,7 @@
         "AWS_DOCUMENTATION_PARTITION": "aws"
       }
     },
-    "mcp-optional-github": {
+    "github": {
       "type": "remote",
       "url": "https://api.githubcopilot.com/mcp/",
       "enabled": true,
@@ -94,7 +94,7 @@
         "Authorization": "Bearer {env:GITHUB_TOKEN}"
       }
     },
-    "mcp-optional-grafana": {
+    "grafana": {
       "type": "local",
       "command": [
         "podman",
