@@ -5,6 +5,7 @@ Managed with [chezmoi](https://www.chezmoi.io/).
 ## Prerequisites
 
 - chezmoi installed
+- pre-commit installed
 - age key at one of:
   - **Linux**: `~/.config/sops/age/keys.txt`
   - **macOS**: `~/Library/Application Support/sops/age/keys.txt`
@@ -12,34 +13,34 @@ Managed with [chezmoi](https://www.chezmoi.io/).
 ## Usage
 
 ```bash
-# First-time setup after cloning
+# Install pre-commit hooks (first-time only)
+pre-commit install
+pre-commit install --hook-type commit-msg
+
+# Validate templates, linting, and secret decryption
 make
 
-# Or equivalently
-chezmoi init --source=/path/to/this/repo --apply
+# Apply dotfiles to $HOME
+make install
 
-# Preview changes
-chezmoi diff
-
-# Apply changes
-chezmoi apply
-
-# Edit a managed file
-chezmoi edit ~/.config/alacritty.toml
+# Preview changes before applying
+chezmoi diff --source=/path/to/this/repo
 ```
+
+`make` (or `make check` / `make test`) runs all pre-commit checks and verifies that age-encrypted secrets can be decrypted. `make install` initializes chezmoi and applies dotfiles to `$HOME`.
 
 ## Platform handling
 
-- **macOS**: Uses `.zprofile`, excludes `.bashrc.d/` and i3
-- **Linux**: Uses `.bashrc.d/`, excludes `.zprofile`
+- **macOS**: Uses `.zprofile`, AeroSpace config; excludes `.bashrc.d/` and i3
+- **Linux**: Uses `.bashrc.d/`, i3 config; excludes `.zprofile` and AeroSpace
 
 ## Secrets
 
-Secrets are encrypted with age. The encrypted file `encrypted_secrets.yaml.age` is decrypted at apply time using the platform-specific key path configured in `.chezmoi.toml.tmpl`.
+Secrets are encrypted with age. The encrypted file `encrypted_secrets.yaml.age` is decrypted at apply time using the platform-specific key path configured in `.chezmoi.toml.tmpl`. Templates reference secrets via `include "encrypted_secrets.yaml.age" | decrypt`.
 
 ## Linting
 
-Pre-commit hooks are configured for:
+Pre-commit hooks handle:
 - Trailing whitespace and EOF fixes
 - YAML validation
 - Shellcheck for bash scripts
@@ -47,15 +48,6 @@ Pre-commit hooks are configured for:
 - Chezmoi template validation
 - Chezmoi doctor checks
 
-```bash
-# Install pre-commit hooks
-pre-commit install
-pre-commit install --hook-type commit-msg
+## CI
 
-# Run manually
-pre-commit run --all-files
-
-# Or use chezmoi directly
-chezmoi verify
-chezmoi doctor
-```
+GitHub Actions runs pre-commit on pull requests and pushes to `main`.
