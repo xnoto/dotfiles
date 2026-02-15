@@ -1,2 +1,0 @@
-{{ range (output "ssh-add" "-L" | splitList "\n") }}{{ if contains "xnoto" . }}{{ . }}
-{{ end }}{{ end }}

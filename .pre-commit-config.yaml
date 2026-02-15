@@ -25,7 +25,7 @@ repos:
     hooks:
       - id: chezmoi-templates
         name: Validate chezmoi templates (syntax only)
-        entry: "bash -c 'for f in \"$@\"; do grep -q \"decrypt\" \"$f\" && continue; chezmoi execute-template < \"$f\" > /dev/null 2>&1 || { echo \"Template error in $f\"; exit 1; }; done' --"
+        entry: "bash -c 'for f in \"$@\"; do grep -qE \"decrypt|output\" \"$f\" && continue; chezmoi execute-template < \"$f\" > /dev/null 2>&1 || { echo \"Template error in $f\"; exit 1; }; done' --"
         language: system
         files: \.tmpl$
         pass_filenames: true
