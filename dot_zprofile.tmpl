@@ -7,6 +7,14 @@ export NODE_OPTIONS='--max-old-space-size=6144'
 export GITHUB_TOKEN={{ index $secrets "github_mcp_token" | quote }}
 export GRAFANA_TOKEN={{ index $secrets "grafana_mcp_token" | quote }}
 
+# Agent aliases
+alias opus='opencode --agent opus'
+alias gpt='opencode --agent gpt'
+alias gemini='opencode --agent gemini'
+alias glm='opencode --agent glm'
+alias kimi='opencode --agent kimi'
+alias minimax='opencode --agent minimax'
+
 # OpenCode configuration for agent-hub-daemon integration
 #
 # The agent-hub-daemon auto-starts a headless hub server (opencode serve --port 4096)

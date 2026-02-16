@@ -1,6 +1,14 @@
 # shellcheck shell=bash
 export NODE_OPTIONS='--max-old-space-size=6144'
 
+# Agent aliases
+alias opus='opencode --agent opus'
+alias gpt='opencode --agent gpt'
+alias gemini='opencode --agent gemini'
+alias glm='opencode --agent glm'
+alias kimi='opencode --agent kimi'
+alias minimax='opencode --agent minimax'
+
 ###-begin-opencode-completions-###
 #
 # yargs command completion script
