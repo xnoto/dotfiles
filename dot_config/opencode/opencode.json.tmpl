@@ -131,6 +131,35 @@
         "tmux-mcp"
       ],
       "enabled": true
+    },
+    "terraform": {
+      "type": "local",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-i",
+        "hashicorp/terraform-mcp-server:0.4.0"
+      ],
+      "enabled": true
+    },
+    "opentofu": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@opentofu/opentofu-mcp-server"
+      ],
+      "enabled": true
+    },
+    "kubernetes": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "mcp-server-kubernetes"
+      ],
+      "enabled": true
     }
   }
 }
