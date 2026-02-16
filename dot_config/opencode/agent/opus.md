@@ -5,6 +5,10 @@ model: anthropic/claude-opus-4-6
 permissions:
   bash: ask
   edit: ask
+options:
+  thinking:
+    type: enabled
+    budgetTokens: 12000
 ---
 
 # Role
