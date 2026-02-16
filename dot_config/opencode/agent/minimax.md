@@ -1,5 +1,5 @@
 ---
-description: DevOps D - Primary (MiniMax)
+description: MiniMax
 mode: primary
 model: minimax-coding-plan/MiniMax-M2.5
 permissions:

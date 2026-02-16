@@ -1,5 +1,5 @@
 ---
-description: DevOps E - Primary (Opus)
+description: Opus
 mode: primary
 model: anthropic/claude-opus-4-6
 permissions:

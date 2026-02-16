@@ -1,5 +1,5 @@
 ---
-description: DevOps A - Primary (Gemini)
+description: Gemini
 mode: primary
 model: google/gemini-3-pro-preview
 temperature: 1.0

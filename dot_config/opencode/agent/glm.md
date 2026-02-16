@@ -1,5 +1,5 @@
 ---
-description: DevOps B - Primary (GLM-5)
+description: GLM-5
 mode: primary
 model: zai-coding-plan/glm-5
 permissions:
