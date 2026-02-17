@@ -2,3 +2,9 @@
     type = "git-repo"
     url = "git@github.com:xnoto/opencode-config.git"
     pull.args = ["--ff-only"]
+
+["git/anthropics/skills"]
+    type = "git-repo"
+    url = "https://github.com/anthropics/skills.git"
+    clone.args = ["--depth", "1"]
+    pull.args = ["--ff-only"]
