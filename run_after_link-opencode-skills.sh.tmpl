@@ -1,0 +1,24 @@
+#!/bin/bash
+# Managed by chezmoi — creates symlinks from anthropics/skills into opencode config
+set -euo pipefail
+
+SKILLS_SRC="{{ .chezmoi.homeDir }}/git/anthropics/skills/skills"
+SKILLS_DST="{{ .chezmoi.homeDir }}/.config/opencode/skills"
+
+if [[ ! -d "$SKILLS_SRC" ]]; then
+  echo "warn: skills source not found at $SKILLS_SRC, skipping" >&2
+  exit 0
+fi
+
+mkdir -p "$SKILLS_DST"
+
+for skill in "$SKILLS_SRC"/*/; do
+  [[ -d "$skill" ]] || continue
+  name=$(basename "$skill")
+  target="$SKILLS_DST/$name"
+  # Don't clobber native (non-symlink) skills committed to opencode-config
+  if [[ -e "$target" && ! -L "$target" ]]; then
+    continue
+  fi
+  ln -sfn "$skill" "$target"
+done
