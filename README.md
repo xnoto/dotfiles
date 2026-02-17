@@ -17,17 +17,24 @@ Managed with [chezmoi](https://www.chezmoi.io/).
 pre-commit install
 pre-commit install --hook-type commit-msg
 
-# Validate templates, linting, and secret decryption
+# Initialize chezmoi with this repo as source
 make
 
 # Apply dotfiles to $HOME
 make install
 
+# Validate templates, linting, and secret decryption
+make check
+
 # Preview changes before applying
 chezmoi diff --source=/path/to/this/repo
 ```
 
-`make` (or `make check` / `make test`) runs all pre-commit checks and verifies that age-encrypted secrets can be decrypted. `make install` initializes chezmoi and applies dotfiles to `$HOME`.
+| Target | Behavior |
+|--------|----------|
+| `make` / `make init` | Initialize chezmoi with this repo as the source |
+| `make install` | Apply dotfiles to `$HOME` |
+| `make check` / `make test` | Run pre-commit hooks and verify age decryption |
 
 ## Platform handling
 

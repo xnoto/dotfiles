@@ -1,14 +1,15 @@
-.PHONY: all check test install
+.PHONY: init install check test
 
-all: check
+default: init
 
-check:
-	@echo "Verifying chezmoi is valid and can decrypt secrets..."
-	@echo
-	pre-commit run --all-files && chezmoi cat --source=$(PWD) ~/.bashrc.d/github > /dev/null && echo "Success"
-
-test: check
+init:
+	chezmoi init -R --source=$(PWD)
 
 install:
-	chezmoi init --source=$(PWD)
-	chezmoi apply --source=$(PWD)
+	chezmoi apply -R --source=$(PWD)
+
+check:
+	pre-commit run --all-files
+	chezmoi execute-template --source=$(PWD) '{{ fromYaml (include "encrypted_secrets.yaml.age" | decrypt) | len }}'  > /dev/null
+
+test: check

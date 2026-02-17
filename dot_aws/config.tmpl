@@ -1,0 +1,21 @@
+{{- $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
+[profile makeitworkcloud]
+region = us-west-2
+[profile staging]
+sso_session = staging
+sso_account_id = {{ index $secrets "aws_staging_sso_account_id" }}
+sso_role_name = {{ index $secrets "aws_staging_sso_role_name" }}
+region = {{ index $secrets "aws_staging_region" }}
+[sso-session staging]
+sso_start_url = {{ index $secrets "aws_sso_start_url" }}
+sso_region = {{ index $secrets "aws_sso_region" }}
+sso_registration_scopes = {{ index $secrets "aws_sso_registration_scopes" }}
+[profile prod]
+sso_session = prod
+sso_account_id = {{ index $secrets "aws_prod_sso_account_id" }}
+sso_role_name = {{ index $secrets "aws_prod_sso_role_name" }}
+region = {{ index $secrets "aws_prod_region" }}
+[sso-session prod]
+sso_start_url = {{ index $secrets "aws_sso_start_url" }}
+sso_region = {{ index $secrets "aws_sso_region" }}
+sso_registration_scopes = {{ index $secrets "aws_sso_registration_scopes" }}
