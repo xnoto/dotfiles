@@ -58,3 +58,21 @@ Pre-commit hooks handle:
 ## CI
 
 GitHub Actions runs pre-commit on pull requests and pushes to `main`.
+
+## Credits
+
+### Fonts
+
+This repository includes the following third-party fonts:
+
+- **Fixedsys Excelsior** (`FSEX.ttf`)
+  - Source: https://github.com/kika/fixedsys
+  - Original author: Darien Valentine
+  - License: [CC0 1.0 Universal (Public Domain Dedication)](https://creativecommons.org/publicdomain/zero/1.0/)
+  - Description: A TrueType bitmap font with programming ligatures, based on the classic Fixedsys typeface.
+
+- **The Ultimate Oldschool PC Font Pack** (`Px437_IBM_VGA_*.ttf`)
+  - Source: https://int10h.org/oldschool-pc-fonts/
+  - Author: VileR
+  - License: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+  - Description: Pixel-perfect reproductions of classic IBM VGA text mode fonts from DOS-era PCs.
