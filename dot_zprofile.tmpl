@@ -1,6 +1,19 @@
 bindkey -v
 eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# GNU coreutils for colorized ls
+export PATH="$(brew --prefix coreutils)/libexec/gnubin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
+
+# Enable vivid color scheme for ls
+export LS_COLORS="$(vivid generate catppuccin-mocha 2>/dev/null || echo 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32')"
+
+# Aliases for colorized output
+alias ls='ls --color=auto'
+alias ll='ls -la --color=auto'
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='egrep --color=auto'
 export SSH_AUTH_SOCK=${HOME}/.bitwarden-ssh-agent.sock
 export NODE_OPTIONS='--max-old-space-size=6144'
 {{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
