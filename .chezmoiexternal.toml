@@ -8,3 +8,7 @@
     url = "https://github.com/anthropics/skills.git"
     clone.args = ["--depth", "1"]
     pull.args = ["--ff-only"]
+
+[".config/alacritty/themes"]
+    type = "git-repo"
+    url = "https://github.com/alacritty/alacritty-theme.git"
