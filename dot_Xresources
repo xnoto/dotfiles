@@ -1,0 +1,9 @@
+Xcursor.theme: Hackneyed
+Xcursor.size: 32
+Xft.antialias: true
+Xft.hinting: true
+Xft.autohint: false
+Xft.rgba: rgba
+Xft.hintstyle: hintfull
+Xft.ldcfilter: lcddefault
+Xft.dpi: 96

@@ -8,6 +8,8 @@
 .local/share/fonts/**
 .config/systemd
 .config/systemd/**
+.Xresources
+.xinitrc
 {{- end }}
 
 # Ignore macOS-specific files on Linux
