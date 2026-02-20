@@ -8,6 +8,7 @@
 .local/share/fonts/**
 .config/systemd
 .config/systemd/**
+.icons
 .Xresources
 .xinitrc
 {{- end }}
