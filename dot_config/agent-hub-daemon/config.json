@@ -1,5 +1,5 @@
 {
   "coordinator": {
-    "model": "anthropic/claude-haiku-4-5"
+    "model": "deepseek/deepseek-reasoner"
   }
 }
