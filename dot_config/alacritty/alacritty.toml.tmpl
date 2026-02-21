@@ -1,6 +1,9 @@
 [cursor]
 style = { shape = "Block", blinking = "Always" }
 
+[colors]
+draw_bold_text_with_bright_colors = true
+
 [font]
 {{- if eq .chezmoi.os "darwin" }}
 size = 16.0
@@ -12,9 +15,13 @@ size = 12.0
 family = "Px437 IBM VGA 8x16"
 style = "Regular"
 
+[font.bold]
+family = "Px437 IBM VGA 8x16"
+style = "Regular"
+
 [general]
 import = [
-    "~/.config/alacritty/themes/themes/alabaster_dark.toml"
+    "~/.config/alacritty/alacritty-theme-linux-vconsole/linux-vconsole.toml"
 ]
 
 [env]

@@ -9,6 +9,6 @@
     clone.args = ["--depth", "1"]
     pull.args = ["--ff-only"]
 
-[".config/alacritty/themes"]
+[".config/alacritty/alacritty-theme-linux-vconsole"]
     type = "git-repo"
-    url = "https://github.com/alacritty/alacritty-theme.git"
+    url = "git@github.com:xnoto/alacritty-theme-linux-vconsole.git"
