@@ -5,11 +5,7 @@ style = { shape = "Block", blinking = "Always" }
 draw_bold_text_with_bright_colors = true
 
 [font]
-{{- if eq .chezmoi.os "darwin" }}
 size = 16.0
-{{- else }}
-size = 12.0
-{{- end }}
 
 [font.normal]
 family = "Px437 IBM VGA 8x16"
