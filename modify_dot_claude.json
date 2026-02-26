@@ -81,6 +81,16 @@ MCP_SERVERS='{
       "command": "npx",
       "args": ["-y", "mcp-server-kubernetes"],
       "type": "stdio"
+    },
+    "aws-api-prod": {
+      "command": "uvx",
+      "args": ["awslabs.aws-api-mcp-server@latest"],
+      "type": "stdio",
+      "env": {
+        "READ_OPERATIONS_ONLY": "true",
+        "AWS_REGION": "us-east-2",
+        "AWS_API_MCP_PROFILE_NAME": "prod"
+      }
     }
   }
 }'
