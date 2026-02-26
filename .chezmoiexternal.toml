@@ -12,3 +12,7 @@
 [".config/alacritty/alacritty-theme-linux-vconsole"]
     type = "git-repo"
     url = "git@github.com:xnoto/alacritty-theme-linux-vconsole.git"
+
+[".config/alacritty/themes"]
+    type = "git-repo"
+    url = "https://github.com/alacritty/alacritty-theme"
