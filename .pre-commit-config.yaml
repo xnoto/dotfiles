@@ -40,3 +40,11 @@ repos:
         pass_filenames: false
         always_run: true
         verbose: true
+
+      - id: chezmoi-dry-run
+        name: chezmoi apply dry-run
+        entry: chezmoi apply --dry-run --source .
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
