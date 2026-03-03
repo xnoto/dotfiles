@@ -33,3 +33,5 @@ jobs:
 
       - name: Run pre-commit
         run: pre-commit run --all-files
+        env:
+          SKIP: no-commit-to-branch
