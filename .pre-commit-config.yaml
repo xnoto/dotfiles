@@ -43,7 +43,7 @@ repos:
 
       - id: chezmoi-dry-run
         name: chezmoi apply dry-run
-        entry: chezmoi apply --dry-run --source .
+        entry: bash -c 'if [ -z "$CI" ]; then chezmoi apply --dry-run --force --source .; else echo "Skipping dry-run in CI (no decryption key)"; fi'
         language: system
         pass_filenames: false
         always_run: true
