@@ -6,6 +6,9 @@ repos:
       - id: trailing-whitespace
       - id: check-yaml
         args: [--allow-multiple-documents]
+      - id: no-commit-to-branch
+        args: [--branch, main]
+      - id: detect-private-key
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1

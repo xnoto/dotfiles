@@ -14,7 +14,10 @@ jobs:
 
       - name: Install chezmoi
         run: |
-          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
+          gh release download --repo twpayne/chezmoi --pattern 'chezmoi_*_linux_amd64.tar.gz' --output /tmp/chezmoi.tar.gz
+          tar -xzf /tmp/chezmoi.tar.gz -C /usr/local/bin chezmoi
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Install age
         run: |
