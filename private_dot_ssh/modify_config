@@ -1,0 +1,11 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $line := "IdentityAgent ~/.bitwarden-ssh-agent.sock" -}}
+{{- $stdin := .chezmoi.stdin -}}
+{{- if not (contains $line $stdin) -}}
+{{- $stdin -}}
+{{- if and $stdin (not (hasSuffix "\n" $stdin)) }}
+{{- end -}}
+{{ $line }}
+{{ else -}}
+{{- $stdin -}}
+{{- end -}}
