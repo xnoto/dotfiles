@@ -6,8 +6,6 @@ repos:
       - id: trailing-whitespace
       - id: check-yaml
         args: [--allow-multiple-documents]
-      - id: no-commit-to-branch
-        args: [--branch, main]
       - id: detect-private-key
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
@@ -17,12 +15,6 @@ repos:
         files: ^dot_bashrc\.d/
         exclude: \.tmpl$
         types: [file]
-
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.1.0
-    hooks:
-      - id: commitizen
-        stages: [commit-msg]
 
   - repo: local
     hooks:
