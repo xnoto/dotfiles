@@ -3,6 +3,11 @@
     url = "git@github.com:xnoto/opencode-config.git"
     pull.args = ["--ff-only"]
 
+[".config/codex"]
+    type = "git-repo"
+    url = "git@github.com:xnoto/codex-config.git"
+    pull.args = ["--ff-only"]
+
 [".config/alacritty/alacritty-theme-linux-vconsole"]
     type = "git-repo"
     url = "git@github.com:xnoto/alacritty-theme-linux-vconsole.git"
@@ -11,7 +16,10 @@
     type = "git-repo"
     url = "https://github.com/alacritty/alacritty-theme"
 
-[".claude"]
-    type = "git-repo"
-    url = "git@github.com:xnoto/claude-config.git"
-    pull.args = ["--ff-only"]
+[".claude/settings.json"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/xnoto/claude-config/main/settings.json"
+
+[".claude/settings.local.json"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/xnoto/claude-config/main/settings.local.json"
