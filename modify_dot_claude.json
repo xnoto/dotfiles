@@ -91,6 +91,12 @@ MCP_SERVERS='{
         "AWS_REGION": "us-east-2",
         "AWS_API_MCP_PROFILE_NAME": "prod"
       }
+    },
+    "context-mode": {
+      "type": "stdio",
+      "command": "context-mode",
+      "args": [],
+      "env": {}
     }
   }
 }'

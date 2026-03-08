@@ -10,3 +10,8 @@
 [".config/alacritty/themes"]
     type = "git-repo"
     url = "https://github.com/alacritty/alacritty-theme"
+
+[".claude"]
+    type = "git-repo"
+    url = "git@github.com:xnoto/claude-config.git"
+    pull.args = ["--ff-only"]
