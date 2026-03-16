@@ -6,7 +6,7 @@ init:
 	chezmoi init -R --source=$(PWD)
 
 install:
-	chezmoi apply -R --source=$(PWD)
+	chezmoi apply --force -R --source=$(PWD)
 
 check:
 	pre-commit run --all-files
