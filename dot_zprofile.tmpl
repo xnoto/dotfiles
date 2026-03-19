@@ -18,6 +18,7 @@ export SSH_AUTH_SOCK=${HOME}/.bitwarden-ssh-agent.sock
 export NODE_OPTIONS='--max-old-space-size=6144'
 {{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
 export GITHUB_TOKEN={{ index $secrets "github_mcp_token" | quote }}
+export GHORG_GITHUB_TOKEN="$GITHUB_TOKEN"
 export GRAFANA_TOKEN={{ index $secrets "grafana_mcp_token" | quote }}
 
 # OpenCode configuration for agent-hub-daemon integration
