@@ -1,2 +1,4 @@
 export GITHUB_TOKEN={{ (index (fromYaml (include "encrypted_secrets.yaml.age" | decrypt)) "github_mcp_token") | quote }}
 export GHORG_GITHUB_TOKEN="$GITHUB_TOKEN"
+export GHORG_CLONE_PROTOCOL="ssh"
+export GHORG_ABSOLUTE_PATH_TO_CLONE_TO="$HOME/git"
