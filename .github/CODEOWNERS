@@ -1,0 +1,8 @@
+# Global owners
+* @xnoto
+
+# Secret/encryption related changes - require owner review
+*.age @xnoto
+.chezmoi.toml.tmpl @xnoto
+encrypted_* @xnoto
+private_* @xnoto

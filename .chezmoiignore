@@ -31,3 +31,4 @@ Makefile
 secrets/
 .sops.yaml
 secrets.yaml
+.DS_Store

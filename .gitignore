@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# Editor directories
+.vscode/
+.idea/
+
+# Secrets that might be accidentally created
+*.key
+*.pem
+.env
+
+# Chezmoi-related (don't commit local state)
+.chezmoi.toml
