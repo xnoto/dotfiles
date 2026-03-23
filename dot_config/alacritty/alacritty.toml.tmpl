@@ -19,11 +19,12 @@ size = 12.0
 family = "Fixedsys Excelsior"
 {{- else }}
 family = "Px437 IBM VGA 8x16"
-style = "Regular"
+{{- end }}
 
+{{- if eq .chezmoi.os "darwin" }}
+{{- else }}
 [font.bold]
 family = "Px437 IBM VGA 8x16"
-style = "Regular"
 {{- end }}
 
 [general]
@@ -32,7 +33,7 @@ import = [
     "~/.config/alacritty/themes/themes/alabaster_dark.toml"
 {{- else }}
     "~/.config/alacritty/alacritty-theme-linux-vconsole/linux-vconsole.toml"
-{{ end }}
+{{- end }}
 ]
 
 [env]
