@@ -1,0 +1,2 @@
+export ARGOCD_STAGING_TOKEN={{ (index (fromYaml (include "encrypted_secrets.yaml.age" | decrypt)) "argocd_staging_mcp_token") | quote }}
+export ARGOCD_PROD_TOKEN={{ (index (fromYaml (include "encrypted_secrets.yaml.age" | decrypt)) "argocd_prod_mcp_token") | quote }}
