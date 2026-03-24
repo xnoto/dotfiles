@@ -1,5 +1,6 @@
 # shellcheck shell=bash
 export NODE_OPTIONS='--max-old-space-size=6144'
+export OPENCODE_CONFIG_DIR="${HOME}/git/hatch1fy/opencode-toolkit"
 
 ###-begin-opencode-completions-###
 #

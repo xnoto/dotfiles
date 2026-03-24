@@ -20,6 +20,7 @@ alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 export SSH_AUTH_SOCK=${HOME}/.bitwarden-ssh-agent.sock
 export NODE_OPTIONS='--max-old-space-size=6144'
+export OPENCODE_CONFIG_DIR="${HOME}/git/hatch1fy/opencode-toolkit"
 {{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
 export GITHUB_TOKEN={{ index $secrets "github_mcp_token" | quote }}
 export GHORG_GITHUB_TOKEN="$GITHUB_TOKEN"
