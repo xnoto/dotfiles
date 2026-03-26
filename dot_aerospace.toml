@@ -195,12 +195,6 @@ on-mode-changed = []
     #alt-shift-y = 'move-node-to-workspace Y'
     #alt-shift-z = 'move-node-to-workspace Z'
 
-    # Custom
-    [workspace-to-monitor-force-assignment]
-    '1' = 'main'
-    '2' = 'secondary'
-    '3' = 'built-in'
-
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
     alt-tab = 'workspace-back-and-forth'
     # See: https://nikitabobko.github.io/AeroSpace/commands#move-workspace-to-monitor
@@ -208,6 +202,11 @@ on-mode-changed = []
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#mode
     alt-shift-semicolon = 'mode service'
+
+[workspace-to-monitor-force-assignment]
+'1' = 'main'
+'2' = 'secondary'
+'3' = 'built-in'
 
 # 'service' binding mode declaration.
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
