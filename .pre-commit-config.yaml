@@ -20,9 +20,9 @@ repos:
     hooks:
       - id: chezmoi-templates
         name: Validate chezmoi templates (syntax only)
-        entry: "bash -c 'for f in \"$@\"; do grep -qE \"decrypt|output|promptString|include\" \"$f\" && continue; chezmoi execute-template --source . < \"$f\" > /dev/null 2>&1 || { echo \"Template error in $f\"; exit 1; }; done' --"
+        entry: "bash -c 'for f in \"$@\"; do grep -qE \"output|promptString\" \"$f\" && continue; if [ -n \"$CI\" ] && grep -q \"decrypt\" \"$f\"; then continue; fi; chezmoi execute-template --source . < \"$f\" > /dev/null 2>&1 || { echo \"Template error in $f\"; exit 1; }; done' --"
         language: system
-        files: \.tmpl$
+        files: (\.tmpl$|\.chezmoiignore$|\.chezmoiremove$)
         pass_filenames: true
 
       - id: chezmoi-doctor
@@ -40,3 +40,9 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
+      - id: chezmoi-secrets-decrypt
+        name: Validate secrets decryption and YAML
+        entry: bash -c 'if [ -z "$CI" ]; then chezmoi execute-template --source . "{{ fromYaml (include \"encrypted_secrets.yaml.age\" | decrypt) | len }}" > /dev/null; else echo "Skipping secrets check in CI (no decryption key)"; fi'
+        language: system
+        pass_filenames: false
+        always_run: true

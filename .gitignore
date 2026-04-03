@@ -19,3 +19,4 @@
 
 # Chezmoi-related (don't commit local state)
 .chezmoi.toml
+secrets.yaml
