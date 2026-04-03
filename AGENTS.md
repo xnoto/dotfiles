@@ -14,7 +14,8 @@ This is a [chezmoi](https://www.chezmoi.io/) dotfiles repository. Chezmoi manage
 
 | Target | Behavior |
 |--------|----------|
-| `make test` / `make check` | Validate only: runs pre-commit and verifies secret decryption |
+| `make` / `make build` | "Compiles" the dotfiles in memory to verify rendering (`chezmoi apply --dry-run`) |
+| `make test` / `make check` | Runs the test suite: executes pre-commit linters and validates secret decryption |
 | `make configure` | Initializes chezmoi configuration, prompting for age keys if missing |
 | `make install` / `make apply` | Applies dotfiles to `$HOME` via `chezmoi apply` |
 
