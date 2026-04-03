@@ -28,6 +28,7 @@ AGENTS.md
 README.md
 LICENSE
 Makefile
+configure
 secrets/
 .sops.yaml
 secrets.yaml
