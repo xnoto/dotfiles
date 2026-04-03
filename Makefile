@@ -1,9 +1,11 @@
-.PHONY: configure build test check install apply
+.PHONY: setup init build test check install apply
 
 default: build
 
-configure:
+setup:
 	chezmoi init -R --source=$(PWD)
+
+init: setup
 
 build:
 	chezmoi apply --dry-run --force -R --source=$(PWD)
