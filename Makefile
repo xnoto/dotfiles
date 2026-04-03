@@ -1,16 +1,16 @@
-.PHONY: init install check test apply
+.PHONY: configure install test check apply
 
-default: init
+default: test
 
-init:
+configure:
 	chezmoi init -R --source=$(PWD)
 
 install:
 	chezmoi apply --force -R --source=$(PWD)
 
-check:
+test:
 	pre-commit run --all-files
 	chezmoi execute-template --source=$(PWD) '{{ fromYaml (include "encrypted_secrets.yaml.age" | decrypt) | len }}'  > /dev/null
 
+check: test
 apply: install
-test: check
