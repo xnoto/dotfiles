@@ -1,8 +1,20 @@
+{{- /* Bootstrap the age key if it doesn't exist */ -}}
+{{- $ageKeyFile := "" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{-   $ageKeyFile = joinPath .chezmoi.homeDir "Library/Application Support/sops/age/keys.txt" -}}
+{{- else -}}
+{{-   $ageKeyFile = joinPath .chezmoi.homeDir ".config/sops/age/keys.txt" -}}
+{{- end -}}
+
+{{- if not (stat $ageKeyFile) -}}
+{{-   $ageKey := promptStringOnce . "ageKey" "Please paste your AGE secret key (from Bitwarden)" -}}
+{{-   $mkdirCmd := printf "mkdir -p '%s'" (dir $ageKeyFile) -}}
+{{-   $writeCmd := printf "echo '%s' > '%s'" $ageKey $ageKeyFile -}}
+{{-   $chmodCmd := printf "chmod 600 '%s'" $ageKeyFile -}}
+{{-   $output := output "bash" "-c" (printf "%s && %s && %s" $mkdirCmd $writeCmd $chmodCmd) -}}
+{{- end -}}
+
 encryption = "age"
 [age]
-{{- if eq .chezmoi.os "darwin" }}
-    identity = "{{ .chezmoi.homeDir }}/Library/Application Support/sops/age/keys.txt"
-{{- else }}
-    identity = "{{ .chezmoi.homeDir }}/.config/sops/age/keys.txt"
-{{- end }}
+    identity = {{ $ageKeyFile | quote }}
     recipient = "age152ek83tm4fj5u70r3fecytn4kg7c5xca24erjchxexx4pfqg6das7q763l"
