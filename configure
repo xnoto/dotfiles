@@ -1,5 +1,2 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-echo "Running make setup..."
 make setup
