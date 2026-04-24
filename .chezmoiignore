@@ -28,6 +28,7 @@ AGENTS.md
 README.md
 LICENSE
 Makefile
+opencode.json
 configure
 secrets/
 .sops.yaml
