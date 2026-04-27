@@ -204,8 +204,8 @@ on-mode-changed = []
     alt-shift-semicolon = 'mode service'
 
 [workspace-to-monitor-force-assignment]
-'1' = 'main'
-'2' = 'secondary'
+'1' = ['main', 'LG ULTRAWIDE (1)']
+'2' = ['secondary', 'LG ULTRAWIDE (2)']
 '3' = 'built-in'
 
 # 'service' binding mode declaration.
