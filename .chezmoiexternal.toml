@@ -3,7 +3,7 @@
     url = "git@github.com:xnoto/opencode-config.git"
     pull.args = ["--ff-only"]
 
-[".config/codex"]
+[".codex"]
     type = "git-repo"
     url = "git@github.com:xnoto/codex-config.git"
     pull.args = ["--ff-only"]

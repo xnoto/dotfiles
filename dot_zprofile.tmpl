@@ -27,6 +27,8 @@ export GHORG_GITHUB_TOKEN="$GITHUB_TOKEN"
 export GHORG_CLONE_PROTOCOL="ssh"
 export GHORG_ABSOLUTE_PATH_TO_CLONE_TO="$HOME/git"
 export GRAFANA_TOKEN={{ index $secrets "grafana_mcp_token" | quote }}
+export ARGOCD_STAGING_TOKEN={{ index $secrets "argocd_staging_mcp_token" | quote }}
+export ARGOCD_PROD_TOKEN={{ index $secrets "argocd_prod_mcp_token" | quote }}
 
 # OpenCode configuration for agent-hub-daemon integration
 #
