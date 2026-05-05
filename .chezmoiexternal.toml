@@ -5,7 +5,7 @@
 
 [".config/opencode-llama"]
     type = "git-repo"
-    url = "git@github.com:xnoto/opencode-llama.git"
+    url = "git@github.com:xnoto/opencode-llama-config.git"
     pull.args = ["--ff-only"]
 
 [".codex"]
