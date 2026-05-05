@@ -28,3 +28,12 @@
 [".claude/settings.local.json"]
     type = "file"
     url = "https://raw.githubusercontent.com/xnoto/claude-config/main/settings.local.json"
+
+{{- if eq .chezmoi.os "linux" }}
+
+# tpm (Tmux Plugin Manager) — on macOS this is provided by Homebrew (`brew install tpm`).
+[".tmux/plugins/tpm"]
+    type = "git-repo"
+    url = "https://github.com/tmux-plugins/tpm"
+    pull.args = ["--ff-only"]
+{{- end }}
