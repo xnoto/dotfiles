@@ -21,6 +21,8 @@
 .zprofile
 Library
 Library/**
+.config/tmux/oasis-dune-light.conf
+.config/tmux/oasis-dune-dark.conf
 {{- end }}
 
 # Always ignore these

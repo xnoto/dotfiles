@@ -7,7 +7,11 @@ set-window-option -g mode-keys vi
 set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-sensible'
 {{- if eq .chezmoi.os "darwin" }}
+set -g @plugin 'uhs-robert/tmux-oasis'
 set -g @plugin 'erikw/tmux-dark-notify'
+set -g @oasis_flavor "dune_dark"
+set -g @dark-notify-theme-path-light '$HOME/.config/tmux/oasis-dune-light.conf'
+set -g @dark-notify-theme-path-dark '$HOME/.config/tmux/oasis-dune-dark.conf'
 {{- else }}
 set -g @plugin 'dracula/tmux'
 {{- end }}
@@ -26,6 +30,9 @@ bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip 
 {{- if eq .chezmoi.os "darwin" }}
 # macOS: tpm installed via Homebrew (`brew install tpm`)
 run -b '/opt/homebrew/opt/tpm/share/tpm/tpm'
+
+if-shell "test -e ~/.local/state/tmux/tmux-dark-notify-theme.conf" \
+     "source-file ~/.local/state/tmux/tmux-dark-notify-theme.conf"
 {{- else }}
 # Linux: tpm cloned to ~/.tmux/plugins/tpm via .chezmoiexternal.toml
 run -b '~/.tmux/plugins/tpm/tpm'
