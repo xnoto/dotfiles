@@ -23,6 +23,7 @@ Library
 Library/**
 .config/tmux/oasis-dune-light.conf
 .config/tmux/oasis-dune-dark.conf
+.config/tmux/oasis-reset.conf
 {{- end }}
 
 # Always ignore these
