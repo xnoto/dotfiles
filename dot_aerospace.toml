@@ -60,6 +60,10 @@ persistent-workspaces = ["1", "2", "3"]
 # See: https://nikitabobko.github.io/AeroSpace/commands#mode
 on-mode-changed = []
 
+[[on-window-detected]]
+    if.app-id = 'com.wizards.mtga'
+    run = 'move-node-to-workspace 3'
+
 # Possible values: (qwerty|dvorak|colemak)
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
 [key-mapping]
