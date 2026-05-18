@@ -6,8 +6,11 @@ set-window-option -g mode-keys vi
 # List of plugins
 set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-sensible'
-set -g @plugin 'uhs-robert/tmux-oasis'
-set -g @oasis_flavor "lagoon_dark"  # Optional: defaults to lagoon_dark
+{{- if eq .chezmoi.os "darwin" }}
+set -g @plugin 'erikw/tmux-dark-notify'
+{{- else }}
+set -g @plugin 'dracula/tmux'
+{{- end }}
 
 # Clipboard integration
 set -g set-clipboard on
