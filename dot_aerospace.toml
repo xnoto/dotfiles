@@ -213,9 +213,9 @@ on-mode-changed = []
     alt-shift-semicolon = 'mode service'
 
 [workspace-to-monitor-force-assignment]
-'1' = ['main', 'LG ULTRAWIDE (1)']
-'2' = ['secondary', 'LG ULTRAWIDE (2)']
-'3' = 'built-in'
+'1' = 'LG ULTRAWIDE (1)'
+'2' = 'LG ULTRAWIDE (2)'
+'3' = '/built-in/'
 
 # 'service' binding mode declaration.
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
