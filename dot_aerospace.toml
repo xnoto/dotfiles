@@ -9,9 +9,6 @@ config-version = 2
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
     'exec-and-forget borders active_color=0xffe1e3e4 inactive_color=0xff494d64 width=5.0',
-    'workspace 3',
-    'workspace 2',
-    'workspace 1'
 ]
 
 # Start AeroSpace at login
@@ -213,9 +210,9 @@ on-mode-changed = []
     alt-shift-semicolon = 'mode service'
 
 [workspace-to-monitor-force-assignment]
-'1' = 'LG ULTRAWIDE (1)'
-'2' = 'LG ULTRAWIDE (2)'
-'3' = '/built-in/'
+'1' = 'main'
+'2' = 'secondary'
+'3' = 'built-in'
 
 # 'service' binding mode declaration.
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
