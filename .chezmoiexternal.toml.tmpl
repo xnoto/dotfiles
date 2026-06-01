@@ -1,17 +1,17 @@
 [".config/opencode"]
     type = "git-repo"
     url = "git@github.com:xnoto/opencode-config.git"
-    pull.args = ["--ff-only"]
+    pull.args = ["--ff-only", "--autostash"]
 
 [".config/opencode-llama"]
     type = "git-repo"
     url = "git@github.com:xnoto/opencode-llama-config.git"
-    pull.args = ["--ff-only"]
+    pull.args = ["--ff-only", "--autostash"]
 
 [".codex"]
     type = "git-repo"
     url = "git@github.com:xnoto/codex-config.git"
-    pull.args = ["--ff-only"]
+    pull.args = ["--ff-only", "--autostash"]
 
 [".config/alacritty/alacritty-theme-linux-vconsole"]
     type = "git-repo"
@@ -35,5 +35,5 @@
 [".tmux/plugins/tpm"]
     type = "git-repo"
     url = "https://github.com/tmux-plugins/tpm"
-    pull.args = ["--ff-only"]
+    pull.args = ["--ff-only", "--autostash"]
 {{- end }}
