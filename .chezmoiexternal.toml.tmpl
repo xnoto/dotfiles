@@ -21,13 +21,13 @@
     type = "git-repo"
     url = "https://github.com/alacritty/alacritty-theme"
 
-[".claude/settings.json"]
-    type = "file"
-    url = "https://raw.githubusercontent.com/xnoto/claude-config/main/settings.json"
-
-[".claude/settings.local.json"]
-    type = "file"
-    url = "https://raw.githubusercontent.com/xnoto/claude-config/main/settings.local.json"
+[".claude"]
+    type = "archive"
+    url = "https://github.com/xnoto/claude-config/archive/refs/heads/main.tar.gz"
+    exact = false
+    stripComponents = 1
+    refreshPeriod = "168h"
+    exclude = ["**/LICENSE"]
 
 {{- if eq .chezmoi.os "linux" }}
 
