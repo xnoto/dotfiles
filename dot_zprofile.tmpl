@@ -4,6 +4,12 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 # GNU coreutils for colorized ls
 export PATH="$(brew --prefix coreutils)/libexec/gnubin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
+if [ -d "$HOME/.kimi-code/bin" ]; then
+  case ":$PATH:" in
+    *":$HOME/.kimi-code/bin:"*) ;;
+    *) export PATH="$HOME/.kimi-code/bin:$PATH" ;;
+  esac
+fi
 case ":$PATH:" in
   *":$HOME/go/bin:"*) ;;
   *) export PATH="$HOME/go/bin:$PATH" ;;
@@ -29,8 +35,12 @@ export GHORG_GITHUB_TOKEN="$GITHUB_TOKEN"
 export GHORG_CLONE_PROTOCOL="ssh"
 export GHORG_ABSOLUTE_PATH_TO_CLONE_TO="$HOME/git"
 export GRAFANA_TOKEN={{ index $secrets "grafana_mcp_token" | quote }}
+{{ with index $secrets "argocd_staging_mcp_token" -}}
 export ARGOCD_STAGING_TOKEN={{ index $secrets "argocd_staging_mcp_token" | quote }}
+{{ end -}}
+{{ with index $secrets "argocd_prod_mcp_token" -}}
 export ARGOCD_PROD_TOKEN={{ index $secrets "argocd_prod_mcp_token" | quote }}
+{{ end -}}
 
 # OpenCode configuration for agent-hub-daemon integration
 #
