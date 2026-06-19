@@ -1,5 +1,5 @@
 {{- $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
-[profile makeitworkcloud]
+[profile makeitwork]
 region = us-west-2
 [profile staging]
 sso_session = staging

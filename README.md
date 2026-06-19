@@ -45,6 +45,10 @@ chezmoi diff --source=/path/to/this/repo
 
 Secrets are encrypted with age. The encrypted file `encrypted_secrets.yaml.age` is decrypted at apply time using the platform-specific key path configured in `.chezmoi.toml.tmpl`. Templates reference secrets via `include "encrypted_secrets.yaml.age" | decrypt`.
 
+## AWS profiles
+
+- `makeitwork` — Make IT Work Cloud AWS access. Use this profile for SOPS AWS KMS operations after the KMS recipient is configured, for example `AWS_PROFILE=makeitwork sops -e -i secrets.yaml`.
+
 ## Linting
 
 Pre-commit hooks handle:
