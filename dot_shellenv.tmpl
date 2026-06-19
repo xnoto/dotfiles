@@ -1,0 +1,45 @@
+# shellcheck shell=sh
+path_prepend() {
+  case ":${PATH}:" in
+    *":$1:"*) ;;
+    *) PATH="$1:${PATH}" ;;
+  esac
+}
+
+path_prepend "${HOME}/.local/bin"
+
+if [ -d "${HOME}/.kimi-code/bin" ]; then
+  path_prepend "${HOME}/.kimi-code/bin"
+fi
+
+if [ -d "${HOME}/.bun/bin" ]; then
+  export BUN_INSTALL="${HOME}/.bun"
+  path_prepend "${HOME}/.bun/bin"
+fi
+
+path_prepend "${HOME}/go/bin"
+export PATH
+
+export NODE_OPTIONS='--max-old-space-size=6144'
+export OPENCODE_CONFIG_DIR="${HOME}/git/hatch1fy/opencode-toolkit"
+export EDITOR=vim
+export VISUAL=vim
+
+{{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
+{{ with index $secrets "github_mcp_token" -}}
+export GITHUB_TOKEN={{ . | quote }}
+{{ end -}}
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+  export GHORG_GITHUB_TOKEN="${GITHUB_TOKEN}"
+fi
+export GHORG_CLONE_PROTOCOL="ssh"
+export GHORG_ABSOLUTE_PATH_TO_CLONE_TO="${HOME}/git"
+{{ with index $secrets "grafana_mcp_token" -}}
+export GRAFANA_TOKEN={{ . | quote }}
+{{ end -}}
+{{ with index $secrets "argocd_staging_mcp_token" -}}
+export ARGOCD_STAGING_TOKEN={{ . | quote }}
+{{ end -}}
+{{ with index $secrets "argocd_prod_mcp_token" -}}
+export ARGOCD_PROD_TOKEN={{ . | quote }}
+{{ end -}}

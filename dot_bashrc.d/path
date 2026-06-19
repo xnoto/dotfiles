@@ -1,12 +1,5 @@
 # shellcheck shell=bash
-case ":${PATH}:" in
-  *":${HOME}/.local/bin:"*) ;;
-  *) export PATH="${HOME}/.local/bin:${PATH}" ;;
-esac
-
-if [ -d "${HOME}/.kimi-code/bin" ]; then
-  case ":${PATH}:" in
-    *":${HOME}/.kimi-code/bin:"*) ;;
-    *) export PATH="${HOME}/.kimi-code/bin:${PATH}" ;;
-  esac
+if [ -r "${HOME}/.shellenv" ]; then
+  # shellcheck source=/dev/null
+  . "${HOME}/.shellenv"
 fi

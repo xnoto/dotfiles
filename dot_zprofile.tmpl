@@ -3,17 +3,9 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # GNU coreutils for colorized ls
 export PATH="$(brew --prefix coreutils)/libexec/gnubin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"
-if [ -d "$HOME/.kimi-code/bin" ]; then
-  case ":$PATH:" in
-    *":$HOME/.kimi-code/bin:"*) ;;
-    *) export PATH="$HOME/.kimi-code/bin:$PATH" ;;
-  esac
+if [ -r "$HOME/.shellenv" ]; then
+  . "$HOME/.shellenv"
 fi
-case ":$PATH:" in
-  *":$HOME/go/bin:"*) ;;
-  *) export PATH="$HOME/go/bin:$PATH" ;;
-esac
 
 # Enable vivid color scheme for ls
 export LS_COLORS="$(vivid generate catppuccin-mocha 2>/dev/null || echo 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32')"
@@ -25,22 +17,8 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 export SSH_AUTH_SOCK=${HOME}/.bitwarden-ssh-agent.sock
-export NODE_OPTIONS='--max-old-space-size=6144'
-export OPENCODE_CONFIG_DIR="${HOME}/git/hatch1fy/opencode-toolkit"
 alias opencode-llama='OPENCODE_CONFIG_DIR="$HOME/.config/opencode-llama" opencode'
 alias claude='claude --mcp-config "${HOME}/.claude/mcp.json"'
-{{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
-export GITHUB_TOKEN={{ index $secrets "github_mcp_token" | quote }}
-export GHORG_GITHUB_TOKEN="$GITHUB_TOKEN"
-export GHORG_CLONE_PROTOCOL="ssh"
-export GHORG_ABSOLUTE_PATH_TO_CLONE_TO="$HOME/git"
-export GRAFANA_TOKEN={{ index $secrets "grafana_mcp_token" | quote }}
-{{ with index $secrets "argocd_staging_mcp_token" -}}
-export ARGOCD_STAGING_TOKEN={{ index $secrets "argocd_staging_mcp_token" | quote }}
-{{ end -}}
-{{ with index $secrets "argocd_prod_mcp_token" -}}
-export ARGOCD_PROD_TOKEN={{ index $secrets "argocd_prod_mcp_token" | quote }}
-{{ end -}}
 
 # OpenCode configuration for agent-hub-daemon integration
 #
@@ -50,5 +28,3 @@ export ARGOCD_PROD_TOKEN={{ index $secrets "argocd_prod_mcp_token" | quote }}
 #
 # To manually start a server (e.g., if daemon isn't running):
 #   opencode --port 4096
-export EDITOR=vim
-export VISUAL=vim
