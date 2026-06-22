@@ -59,19 +59,19 @@ on-mode-changed = []
 
 [[on-window-detected]]
     if.app-id = 'com.wizards.mtga'
-    run = 'move-node-to-workspace 3'
+    run = 'move-node-to-workspace 1'
 
 [[on-window-detected]]
     if.app-id = 'com.feralinteractive.ageofempires2'
-    run = 'move-node-to-workspace 3'
+    run = 'move-node-to-workspace 1'
 
 [[on-window-detected]]
     if.app-id = 'com.feralinteractive.thronesofbritanniatw'
-    run = 'move-node-to-workspace 3'
+    run = 'move-node-to-workspace 1'
 
 [[on-window-detected]]
     if.app-id = 'com.feralinteractive.warhammer3tw'
-    run = 'move-node-to-workspace 3'
+    run = 'move-node-to-workspace 1'
 
 # Possible values: (qwerty|dvorak|colemak)
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
