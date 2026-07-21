@@ -3,7 +3,7 @@
 default: build
 
 setup:
-	chezmoi init -R --source=$(PWD)
+	./configure
 
 init: setup
 

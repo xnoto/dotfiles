@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -9,25 +9,30 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.11.0.1
+    rev: 745eface02aef23e168a8afb6b5737818efbea95  # v0.11.0.1
     hooks:
       - id: shellcheck
-        files: ^dot_bashrc\.d/
+        files: ^(configure|dot_bashrc\.d/)
         exclude: \.tmpl$
         types: [file]
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: 6afcd8e9560ddf1b9a5032262a0be26540e85fb3  # v4.16.5
+    hooks:
+      - id: commitizen
 
   - repo: local
     hooks:
       - id: chezmoi-templates
-        name: Validate chezmoi templates (syntax only)
-        entry: "bash -c 'for f in \"$@\"; do grep -qE \"output|promptString\" \"$f\" && continue; if [ -n \"$CI\" ] && grep -q \"decrypt\" \"$f\"; then continue; fi; chezmoi execute-template --source . < \"$f\" > /dev/null 2>&1 || { echo \"Template error in $f\"; exit 1; }; done' --"
+        name: Validate chezmoi templates
+        entry: "bash -c 'for f in \"$@\"; do chezmoi execute-template --source . < \"$f\" > /dev/null || { echo \"Template error in $f\"; exit 1; }; done' --"
         language: system
         files: (\.tmpl$|\.chezmoiignore$|\.chezmoiremove$)
         pass_filenames: true
 
       - id: chezmoi-doctor
         name: Run chezmoi doctor
-        entry: "bash -c 'chezmoi doctor --no-network --source=$(pwd) || true'"
+        entry: "bash -c 'chezmoi doctor --no-network --source=$(pwd)'"
         language: system
         pass_filenames: false
         always_run: true
@@ -35,14 +40,21 @@ repos:
 
       - id: chezmoi-dry-run
         name: chezmoi apply dry-run
-        entry: bash -c 'if [ -z "$CI" ]; then chezmoi apply --dry-run --force --source .; else echo "Skipping dry-run in CI (no decryption key)"; fi'
+        entry: chezmoi apply --dry-run --force --source .
         language: system
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
       - id: chezmoi-secrets-decrypt
         name: Validate secrets decryption and YAML
-        entry: bash -c 'if [ -z "$CI" ]; then chezmoi execute-template --source . "{{ fromYaml (include \"encrypted_secrets.yaml.age\" | decrypt) | len }}" > /dev/null; else echo "Skipping secrets check in CI (no decryption key)"; fi'
+        entry: bash -c 'chezmoi execute-template --source . "{{ fromYaml (include \"encrypted_secrets.yaml.age\" | decrypt) | len }}" > /dev/null'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: secret-template-permissions
+        name: Require private mode for secret templates
+        entry: python3 tests/check_secret_templates_private.py
         language: system
         pass_filenames: false
         always_run: true

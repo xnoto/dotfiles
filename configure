@@ -1,2 +1,50 @@
 #!/usr/bin/env bash
-make setup
+set -euo pipefail
+
+repo_dir="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+case "$(uname -s)" in
+  Darwin)
+    age_key_file="${HOME}/Library/Application Support/sops/age/keys.txt"
+    ;;
+  Linux)
+    age_key_file="${HOME}/.config/sops/age/keys.txt"
+    ;;
+  *)
+    printf 'Unsupported operating system: %s\n' "$(uname -s)" >&2
+    exit 1
+    ;;
+esac
+
+if [[ ! -f "${age_key_file}" ]]; then
+  age_key_dir="$(dirname "${age_key_file}")"
+  umask 077
+  mkdir -p "${age_key_dir}"
+  chmod 700 "${age_key_dir}"
+
+  printf 'Paste your AGE secret key (input hidden): ' >&2
+  IFS= read -r -s age_key
+  printf '\n' >&2
+
+  case "${age_key}" in
+    AGE-SECRET-KEY-1*) ;;
+    *)
+      printf 'Invalid AGE secret key format.\n' >&2
+      exit 1
+      ;;
+  esac
+
+  temporary_key_file="$(mktemp "${age_key_dir}/keys.txt.XXXXXX")"
+  trap 'rm -f "${temporary_key_file}"' EXIT
+  printf '%s\n' "${age_key}" >"${temporary_key_file}"
+  chmod 600 "${temporary_key_file}"
+  if ! chezmoi age-keygen -y "${temporary_key_file}" >/dev/null 2>&1; then
+    printf 'Invalid AGE secret key.\n' >&2
+    exit 1
+  fi
+  mv "${temporary_key_file}" "${age_key_file}"
+  trap - EXIT
+  unset age_key
+fi
+
+chezmoi init -R --source="${repo_dir}"

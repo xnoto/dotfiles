@@ -1,1 +1,0 @@
-export GRAFANA_TOKEN={{ (index (fromYaml (include "encrypted_secrets.yaml.age" | decrypt)) "grafana_mcp_token") | quote }}

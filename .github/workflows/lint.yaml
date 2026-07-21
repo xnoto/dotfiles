@@ -6,30 +6,149 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+env:
+  CHEZMOI_VERSION: 2.71.1
+  PRE_COMMIT_VERSION: 4.6.0
+  SHELLCHECK_PY_VERSION: 0.11.0.1
+
 jobs:
   pre-commit:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Install chezmoi
-        run: |
-          gh release download --repo twpayne/chezmoi --pattern 'chezmoi_*_linux_amd64.tar.gz' --output /tmp/chezmoi.tar.gz
-          tar -xzf /tmp/chezmoi.tar.gz -C /usr/local/bin chezmoi
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Install age
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y age
-
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          python-version: '3.12'
+          persist-credentials: false
 
-      - name: Install pre-commit
-        run: pip install pre-commit
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12.10"
+
+      - name: Install verified chezmoi
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$(uname -s)-$(uname -m)" in
+            Linux-x86_64)
+              asset="chezmoi_${CHEZMOI_VERSION}_linux_amd64.tar.gz"
+              checksum="e1fb16c962644d57f4d451c324aa86163d00faf5d035500f41fb48943a66dfed"
+              ;;
+            Darwin-x86_64)
+              asset="chezmoi_${CHEZMOI_VERSION}_darwin_amd64.tar.gz"
+              checksum="1551f07cab00441540a12e663ffbf4645664319c0f91d30a5f9a255470b561cc"
+              ;;
+            Darwin-arm64)
+              asset="chezmoi_${CHEZMOI_VERSION}_darwin_arm64.tar.gz"
+              checksum="9fad1201c328428634b8a086f767df0dfe6dd3ea1128a2a7c45bc0b16641e294"
+              ;;
+            *)
+              echo "Unsupported runner architecture: $(uname -s)-$(uname -m)" >&2
+              exit 1
+              ;;
+          esac
+          archive="${RUNNER_TEMP}/${asset}"
+          python - "${asset}" "${archive}" <<'PY'
+          import os
+          import sys
+          import urllib.request
+
+          asset, destination = sys.argv[1:]
+          version = os.environ["CHEZMOI_VERSION"]
+          url = f"https://github.com/twpayne/chezmoi/releases/download/v{version}/{asset}"
+          urllib.request.urlretrieve(url, destination)
+          PY
+          printf '%s  %s\n' "${checksum}" "${archive}" | shasum -a 256 --check
+          mkdir -p "${RUNNER_TEMP}/bin"
+          tar -xzf "${archive}" -C "${RUNNER_TEMP}/bin" chezmoi
+          echo "${RUNNER_TEMP}/bin" >>"${GITHUB_PATH}"
+
+      - name: Install pinned validation tools
+        run: >-
+          python -m pip install
+          "pre-commit==${PRE_COMMIT_VERSION}"
+          "shellcheck-py==${SHELLCHECK_PY_VERSION}"
+
+      - name: Create fixture age identity and encrypted secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            key_dir="${HOME}/Library/Application Support/sops/age"
+          else
+            key_dir="${HOME}/.config/sops/age"
+          fi
+          key_file="${key_dir}/keys.txt"
+          generated_key="${RUNNER_TEMP}/fixture-age-key.txt"
+          chezmoi age-keygen -o "${generated_key}"
+          age_key="$(awk '/^AGE-SECRET-KEY-/{print; exit}' "${generated_key}")"
+          printf '%s\n' "${age_key}" | ./configure
+          unset age_key
+          python - "${key_file}" <<'PY'
+          import os
+          import stat
+          import sys
+
+          mode = stat.S_IMODE(os.stat(sys.argv[1]).st_mode)
+          if mode != 0o600:
+              raise SystemExit(f"age identity has mode {mode:o}, expected 600")
+          PY
+          recipient="$(chezmoi age-keygen -y "${key_file}")"
+          chezmoi --age-recipient "${recipient}" encrypt \
+            --output encrypted_secrets.yaml.age \
+            tests/fixtures/fixture-secrets.yaml
+
+      - name: Verify rendered shell credential isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          rendered_shellenv="${RUNNER_TEMP}/shellenv"
+          fake_bin="${RUNNER_TEMP}/credential-probes"
+          chezmoi execute-template --source . <private_dot_shellenv.tmpl >"${rendered_shellenv}"
+          shellcheck --shell=sh "${rendered_shellenv}"
+          mkdir -p "${fake_bin}"
+          cat >"${fake_bin}/credential-probe" <<'SH'
+          #!/bin/sh
+          set -eu
+          case "${0##*/}" in
+            gh)
+              test -n "${GITHUB_TOKEN:-}"
+              ;;
+            ghorg)
+              test -n "${GITHUB_TOKEN:-}"
+              test -n "${GHORG_GITHUB_TOKEN:-}"
+              ;;
+            opencode)
+              test -n "${GITHUB_TOKEN:-}"
+              test -n "${GRAFANA_TOKEN:-}"
+              test -n "${ARGOCD_STAGING_TOKEN:-}"
+              test -n "${ARGOCD_PROD_TOKEN:-}"
+              ;;
+          esac
+          SH
+          chmod 700 "${fake_bin}/credential-probe"
+          for command in gh ghorg opencode; do
+            ln -s credential-probe "${fake_bin}/${command}"
+          done
+          PATH="${fake_bin}:${PATH}" RENDERED_SHELLENV="${rendered_shellenv}" sh <<'SH'
+          set -eu
+          . "${RENDERED_SHELLENV}"
+          for variable in GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN; do
+            if printenv "${variable}" >/dev/null; then
+              echo "${variable} leaked into the ambient environment" >&2
+              exit 1
+            fi
+          done
+          gh
+          ghorg
+          opencode
+          SH
 
       - name: Run pre-commit
         run: pre-commit run --all-files

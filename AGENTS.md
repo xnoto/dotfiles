@@ -16,7 +16,7 @@ This is a [chezmoi](https://www.chezmoi.io/) dotfiles repository. Chezmoi manage
 |--------|----------|
 | `make` / `make build` | "Compiles" the dotfiles in memory to verify rendering (`chezmoi apply --dry-run`) |
 | `make test` / `make check` | Runs the test suite: executes pre-commit linters and validates secret decryption |
-| `./configure` / `make setup` | Initializes chezmoi configuration, prompting for age keys if missing |
+| `./configure` / `make setup` | Securely installs a missing age identity, then initializes chezmoi |
 | `make install` / `make apply` | Applies dotfiles to `$HOME` via `chezmoi apply` |
 
 `make` is safe and non-destructive. `make install` writes to `$HOME`.
@@ -29,6 +29,7 @@ This is a [chezmoi](https://www.chezmoi.io/) dotfiles repository. Chezmoi manage
 | `dot_config/bar` | `~/.config/bar` |
 | `foo.tmpl` | `foo` (template processed) |
 | `encrypted_foo.age` | `foo` (decrypted) |
+| `private_dot_foo` | `~/.foo` with group/world permissions removed |
 
 See [chezmoi reference](https://www.chezmoi.io/reference/source-state-attributes/) for full attribute list.
 
@@ -52,9 +53,12 @@ Files in `.chezmoiignore` are excluded from installation. Currently:
 - Encrypted with [age](https://github.com/FiloSottile/age)
 - Source files: `encrypted_*.age`
 - Key location configured in `.chezmoi.toml.tmpl` (platform-specific paths)
+- `make setup` reads a missing identity from hidden stdin and installs it atomically with owner-only permissions
 - Templates access secrets via `include "encrypted_secrets.yaml.age" | decrypt`
-- The `chezmoi-templates` pre-commit hook **skips** files containing `decrypt` (can't resolve `include` from stdin)
-- `make check` separately validates decryption via `chezmoi cat`
+- Secret-rendering templates must use a `private_` source-state attribute
+- Shell tokens remain unexported and are injected only into command wrappers that require them
+- CI replaces the encrypted payload with non-production fixture secrets and runs the same rendering checks
+- `make check` validates complete rendering and decryption
 - Never commit unencrypted secrets
 
 ## Pre-commit Checks
@@ -70,10 +74,13 @@ pre-commit install --hook-type commit-msg
 1. **end-of-file-fixer** - ensures files end with newline
 2. **trailing-whitespace** - removes trailing whitespace
 3. **check-yaml** - validates YAML syntax
-4. **shellcheck** - lints bash scripts in `dot_bashrc.d/` (excludes `.tmpl`)
+4. **shellcheck** - lints non-template bash scripts and `configure`
 5. **commitizen** - enforces [Conventional Commits](https://www.conventionalcommits.org/)
-6. **chezmoi-templates** - validates `.tmpl` syntax (skips files with `decrypt`/`output`)
-7. **chezmoi-doctor** - runs `chezmoi doctor` sanity checks
+6. **chezmoi-templates** - renders every `.tmpl` file
+7. **chezmoi-doctor** - runs `chezmoi doctor` sanity checks and propagates failures
+8. **chezmoi-dry-run** - renders a complete apply without modifying `$HOME`
+9. **chezmoi-secrets-decrypt** - validates encrypted secret decryption and YAML parsing
+10. **secret-template-permissions** - rejects secret-rendering templates without `private_`
 
 ### Running Manually
 
@@ -101,6 +108,8 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`
 GitHub Actions (`.github/workflows/lint.yaml`) runs pre-commit on:
 - Pull requests to `main`
 - Pushes to `main`
+
+The job runs on Linux and macOS with pinned tooling and disposable fixture secrets.
 
 # context-mode — MANDATORY routing rules
 

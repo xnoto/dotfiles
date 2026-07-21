@@ -1,39 +1,60 @@
 [".config/opencode"]
-    type = "git-repo"
-    url = "git@github.com:xnoto/opencode-config.git"
-    pull.args = ["--ff-only", "--autostash"]
+    type = "archive"
+    url = "https://codeload.github.com/xnoto/opencode-config/tar.gz/b5945db2841cbdd29d4514fcf50ec9b2554d744c"
+    exact = false
+    stripComponents = 1
+    checksum.sha256 = "e396784b5b7c680bfe42bec9963f800d9efe20fcb9ed892a3922d80860c64ebc"
+    checksum.size = 27297
 
 [".config/opencode-llama"]
-    type = "git-repo"
-    url = "git@github.com:xnoto/opencode-llama-config.git"
-    pull.args = ["--ff-only", "--autostash"]
+    type = "archive"
+    url = "https://codeload.github.com/xnoto/opencode-llama-config/tar.gz/02c2144bad39386508cc7af1ec7c495ff9651714"
+    exact = false
+    stripComponents = 1
+    checksum.sha256 = "b48b37d26e77a7ebe46b65ab95c8233024e4d83641dae08105118b1ec502b567"
+    checksum.size = 1590
 
 [".codex"]
-    type = "git-repo"
-    url = "git@github.com:xnoto/codex-config.git"
-    pull.args = ["--ff-only", "--autostash"]
+    type = "archive"
+    url = "https://codeload.github.com/xnoto/codex-config/tar.gz/d77ca0f7a98c0312d0fa8cd014ff542ed6da713f"
+    exact = false
+    stripComponents = 1
+    checksum.sha256 = "ab4d3ad86c3d228d46b289c3703f690dccefbdeeb24996f92d42fa10e73a071a"
+    checksum.size = 2041
 
 [".config/alacritty/alacritty-theme-linux-vconsole"]
-    type = "git-repo"
-    url = "git@github.com:xnoto/alacritty-theme-linux-vconsole.git"
+    type = "archive"
+    url = "https://codeload.github.com/xnoto/alacritty-theme-linux-vconsole/tar.gz/1be03594775b4063c6277613203f53ce7aac86d8"
+    exact = false
+    stripComponents = 1
+    checksum.sha256 = "d169e094ad10f325d89ef3854db91e1e5012dbe2fced87bc81eeaf57f7adb953"
+    checksum.size = 3192
 
 [".config/alacritty/themes"]
-    type = "git-repo"
-    url = "https://github.com/alacritty/alacritty-theme"
+    type = "archive"
+    url = "https://codeload.github.com/alacritty/alacritty-theme/tar.gz/659d2e1d669cd5722f11e58c44fd45dc26a6ffcd"
+    exact = false
+    stripComponents = 1
+    checksum.sha256 = "ee6c55e6d166287d888a27376cc929b5aca4c51e9dcfd2ef52b22a37212441ff"
+    checksum.size = 15223452
 
 [".claude"]
     type = "archive"
-    url = "https://github.com/xnoto/claude-config/archive/refs/heads/main.tar.gz"
+    url = "https://codeload.github.com/xnoto/claude-config/tar.gz/a23b1235b2794bccf5857b7845b51d1079995187"
     exact = false
     stripComponents = 1
-    refreshPeriod = "168h"
     exclude = ["**/LICENSE"]
+    checksum.sha256 = "6d29e406ab4353abbf8c026f3b559f7d04d71335ea608dc132c91699fdd74325"
+    checksum.size = 1851
 
 {{- if eq .chezmoi.os "linux" }}
 
 # tpm (Tmux Plugin Manager) — on macOS this is provided by Homebrew (`brew install tpm`).
 [".tmux/plugins/tpm"]
-    type = "git-repo"
-    url = "https://github.com/tmux-plugins/tpm"
-    pull.args = ["--ff-only", "--autostash"]
+    type = "archive"
+    url = "https://codeload.github.com/tmux-plugins/tpm/tar.gz/99469c4a9b1ccf77fade25842dc7bafbc8ce9946"
+    exact = false
+    stripComponents = 1
+    checksum.sha256 = "f393ff6fe336624bcee691c9addd64227429fd2602a24203e64d9702f98ede47"
+    checksum.size = 15490
 {{- end }}

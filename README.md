@@ -18,6 +18,9 @@ pre-commit install
 pre-commit install --hook-type commit-msg
 
 # Initialize chezmoi with this repo as source
+make setup
+
+# Preview a rendered apply without modifying $HOME
 make
 
 # Apply dotfiles to $HOME
@@ -32,7 +35,8 @@ chezmoi diff --source=/path/to/this/repo
 
 | Target | Behavior |
 |--------|----------|
-| `make` / `make init` | Initialize chezmoi with this repo as the source |
+| `make` / `make build` | Render an apply as a dry-run without modifying `$HOME` |
+| `make setup` / `make init` | Securely install the age identity, then initialize chezmoi |
 | `make install` | Apply dotfiles to `$HOME` |
 | `make check` / `make test` | Run pre-commit hooks and verify age decryption |
 
@@ -43,7 +47,7 @@ chezmoi diff --source=/path/to/this/repo
 
 ## Secrets
 
-Secrets are encrypted with age. The encrypted file `encrypted_secrets.yaml.age` is decrypted at apply time using the platform-specific key path configured in `.chezmoi.toml.tmpl`. Templates reference secrets via `include "encrypted_secrets.yaml.age" | decrypt`.
+Secrets are encrypted with age. The encrypted file `encrypted_secrets.yaml.age` is decrypted at apply time using the platform-specific key path configured in `.chezmoi.toml.tmpl`. `make setup` creates a missing identity atomically with owner-only permissions. Secret-rendering targets use chezmoi's `private_` attribute. Shell tokens remain unexported and are injected only by the `gh`, `ghorg`, and `opencode` wrappers. Templates reference secrets via `include "encrypted_secrets.yaml.age" | decrypt`.
 
 ## AWS profiles
 
@@ -61,7 +65,7 @@ Pre-commit hooks handle:
 
 ## CI
 
-GitHub Actions runs pre-commit on pull requests and pushes to `main`.
+GitHub Actions runs the full pre-commit suite on Linux and macOS using an ephemeral age identity and non-production fixture secrets. CI actions, tools, and external archives are pinned to immutable versions or commits; external archive checksums are recorded in `.chezmoiexternal.toml.tmpl`.
 
 ## Credits
 
