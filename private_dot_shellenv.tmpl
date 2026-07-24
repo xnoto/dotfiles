@@ -26,51 +26,22 @@ export EDITOR=vim
 export VISUAL=vim
 
 {{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
-unset GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN
 {{ with index $secrets "github_mcp_token" -}}
-_DOTFILES_GITHUB_TOKEN={{ . | quote }}
+export GITHUB_TOKEN={{ . | quote }}
+export GHORG_GITHUB_TOKEN={{ . | quote }}
 {{ end -}}
 export GHORG_CLONE_PROTOCOL="ssh"
 export GHORG_ABSOLUTE_PATH_TO_CLONE_TO="${HOME}/git"
 {{ with index $secrets "grafana_mcp_token" -}}
-_DOTFILES_GRAFANA_TOKEN={{ . | quote }}
+export GRAFANA_TOKEN={{ . | quote }}
 {{ end -}}
 {{ with index $secrets "argocd_staging_mcp_token" -}}
-_DOTFILES_ARGOCD_STAGING_TOKEN={{ . | quote }}
+export ARGOCD_STAGING_TOKEN={{ . | quote }}
 {{ end -}}
 {{ with index $secrets "argocd_prod_mcp_token" -}}
-_DOTFILES_ARGOCD_PROD_TOKEN={{ . | quote }}
+export ARGOCD_PROD_TOKEN={{ . | quote }}
 {{ end -}}
 
-# Inject credentials only into commands that need them instead of every child process.
-gh() {
-  env GITHUB_TOKEN="${_DOTFILES_GITHUB_TOKEN}" gh "$@"
-}
-
-ghorg() {
-  env \
-    GITHUB_TOKEN="${_DOTFILES_GITHUB_TOKEN}" \
-    GHORG_GITHUB_TOKEN="${_DOTFILES_GITHUB_TOKEN}" \
-    ghorg "$@"
-}
-
-opencode() {
-  env \
-    GITHUB_TOKEN="${_DOTFILES_GITHUB_TOKEN}" \
-    GRAFANA_TOKEN="${_DOTFILES_GRAFANA_TOKEN}" \
-    ARGOCD_STAGING_TOKEN="${_DOTFILES_ARGOCD_STAGING_TOKEN}" \
-    ARGOCD_PROD_TOKEN="${_DOTFILES_ARGOCD_PROD_TOKEN}" \
-    opencode "$@"
-}
-
 claude() {
-  env GITHUB_TOKEN="${_DOTFILES_GITHUB_TOKEN}" claude --mcp-config "${HOME}/.claude/mcp.json" "$@"
-}
-
-codex() {
-  env GITHUB_TOKEN="${_DOTFILES_GITHUB_TOKEN}" codex "$@"
-}
-
-agy() {
-  env GITHUB_TOKEN="${_DOTFILES_GITHUB_TOKEN}" agy "$@"
+  command claude --mcp-config "${HOME}/.claude/mcp.json" "$@"
 }

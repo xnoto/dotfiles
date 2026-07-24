@@ -104,50 +104,19 @@ jobs:
             --output encrypted_secrets.yaml.age \
             tests/fixtures/fixture-secrets.yaml
 
-      - name: Verify rendered shell credential isolation
+      - name: Verify rendered shellenv
         shell: bash
         run: |
           set -euo pipefail
           rendered_shellenv="${RUNNER_TEMP}/shellenv"
-          fake_bin="${RUNNER_TEMP}/credential-probes"
           chezmoi execute-template --source . <private_dot_shellenv.tmpl >"${rendered_shellenv}"
           shellcheck --shell=sh "${rendered_shellenv}"
-          mkdir -p "${fake_bin}"
-          cat >"${fake_bin}/credential-probe" <<'SH'
-          #!/bin/sh
-          set -eu
-          case "${0##*/}" in
-            gh)
-              test -n "${GITHUB_TOKEN:-}"
-              ;;
-            ghorg)
-              test -n "${GITHUB_TOKEN:-}"
-              test -n "${GHORG_GITHUB_TOKEN:-}"
-              ;;
-            opencode)
-              test -n "${GITHUB_TOKEN:-}"
-              test -n "${GRAFANA_TOKEN:-}"
-              test -n "${ARGOCD_STAGING_TOKEN:-}"
-              test -n "${ARGOCD_PROD_TOKEN:-}"
-              ;;
-          esac
-          SH
-          chmod 700 "${fake_bin}/credential-probe"
-          for command in gh ghorg opencode; do
-            ln -s credential-probe "${fake_bin}/${command}"
-          done
-          PATH="${fake_bin}:${PATH}" RENDERED_SHELLENV="${rendered_shellenv}" sh <<'SH'
+          RENDERED_SHELLENV="${rendered_shellenv}" sh <<'SH'
           set -eu
           . "${RENDERED_SHELLENV}"
           for variable in GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN; do
-            if printenv "${variable}" >/dev/null; then
-              echo "${variable} leaked into the ambient environment" >&2
-              exit 1
-            fi
+            test -n "$(printenv "${variable}")" || { echo "${variable} not exported" >&2; exit 1; }
           done
-          gh
-          ghorg
-          opencode
           SH
 
       - name: Run pre-commit
