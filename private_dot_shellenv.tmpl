@@ -62,3 +62,15 @@ opencode() {
     ARGOCD_PROD_TOKEN="${_DOTFILES_ARGOCD_PROD_TOKEN}" \
     opencode "$@"
 }
+
+claude() {
+  env GITHUB_TOKEN="${_DOTFILES_GITHUB_TOKEN}" claude --mcp-config "${HOME}/.claude/mcp.json" "$@"
+}
+
+codex() {
+  env GITHUB_TOKEN="${_DOTFILES_GITHUB_TOKEN}" codex "$@"
+}
+
+agy() {
+  env GITHUB_TOKEN="${_DOTFILES_GITHUB_TOKEN}" agy "$@"
+}

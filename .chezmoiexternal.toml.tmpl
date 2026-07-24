@@ -24,9 +24,12 @@
     pull.args = ["--ff-only", "--autostash"]
 
 [".claude"]
-    type = "git-repo"
-    url = "git@github.com:xnoto/claude-config.git"
-    pull.args = ["--ff-only", "--autostash"]
+    type = "archive"
+    url = "https://codeload.github.com/xnoto/claude-config/tar.gz/refs/heads/main"
+    refreshPeriod = "0s"
+    exact = false
+    stripComponents = 1
+    exclude = ["**/LICENSE"]
 
 {{- if eq .chezmoi.os "linux" }}
 
