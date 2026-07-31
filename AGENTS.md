@@ -72,13 +72,14 @@ pre-commit install --hook-type commit-msg
 2. **trailing-whitespace** - removes trailing whitespace
 3. **check-yaml** - validates YAML syntax
 4. **detect-private-key** - rejects committed private-key material
-5. **shellcheck** - lints non-template bash scripts and `configure`
-6. **commitizen** - enforces [Conventional Commits](https://www.conventionalcommits.org/)
-7. **chezmoi-templates** - renders every `.tmpl` file
-8. **chezmoi-doctor** - runs `chezmoi doctor` sanity checks and propagates failures
-9. **chezmoi-dry-run** - renders a complete apply without modifying `$HOME`
-10. **chezmoi-secrets-decrypt** - validates encrypted secret decryption and YAML parsing
-11. **secret-template-permissions** - rejects secret-rendering templates without `private_`
+5. **detect-secrets** - rejects newly introduced credentials against the reviewed baseline
+6. **shellcheck** - lints non-template bash scripts and `configure`
+7. **commitizen** - enforces [Conventional Commits](https://www.conventionalcommits.org/)
+8. **chezmoi-templates** - renders every `.tmpl` file
+9. **chezmoi-doctor** - runs `chezmoi doctor` sanity checks and propagates failures
+10. **chezmoi-dry-run** - renders a complete apply without modifying `$HOME`
+11. **chezmoi-secrets-decrypt** - validates encrypted secret decryption and YAML parsing
+12. **secret-template-permissions** - rejects secret-rendering templates without `private_`
 
 ### Running Manually
 

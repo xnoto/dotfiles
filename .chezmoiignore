@@ -31,6 +31,7 @@ Library/**
 .github/**
 .gitignore
 .pre-commit-config.yaml
+.secrets.baseline
 AGENTS.md
 README.md
 LICENSE
