@@ -42,6 +42,7 @@ export ARGOCD_STAGING_TOKEN={{ . | quote }}
 export ARGOCD_PROD_TOKEN={{ . | quote }}
 {{ end -}}
 
+unalias claude 2>/dev/null || true
 claude() {
   command claude --mcp-config "${HOME}/.claude/mcp.json" "$@"
 }

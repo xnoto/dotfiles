@@ -32,7 +32,7 @@ repos:
 
       - id: chezmoi-doctor
         name: Run chezmoi doctor
-        entry: "bash -c 'chezmoi doctor --no-network --source=$(pwd)'"
+        entry: "bash -c 'TMPDIR=\"$PWD\" chezmoi doctor --no-network --source=\"$PWD\"'"
         language: system
         pass_filenames: false
         always_run: true
