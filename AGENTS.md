@@ -35,10 +35,7 @@ See [chezmoi reference](https://www.chezmoi.io/reference/source-state-attributes
 
 ## Files NOT Installed
 
-Files in `.chezmoiignore` are excluded from installation. Currently:
-- `README.md`, `LICENSE`, `Makefile`, `AGENTS.md`
-- `secrets/`, `.sops.yaml`, `secrets.yaml`
-- Platform-specific exclusions (see file for details)
+Files in `.chezmoiignore` are excluded from installation. Treat that file as the authoritative list. It includes repository metadata and tooling, tests, secret-management sources, and platform-specific exclusions. The root `opencode.json` is a project-scoped OpenCode configuration for this checkout and is not installed into `$HOME`.
 
 **When adding repo-only files**, add them to `.chezmoiignore` under "Always ignore these".
 
@@ -74,13 +71,14 @@ pre-commit install --hook-type commit-msg
 1. **end-of-file-fixer** - ensures files end with newline
 2. **trailing-whitespace** - removes trailing whitespace
 3. **check-yaml** - validates YAML syntax
-4. **shellcheck** - lints non-template bash scripts and `configure`
-5. **commitizen** - enforces [Conventional Commits](https://www.conventionalcommits.org/)
-6. **chezmoi-templates** - renders every `.tmpl` file
-7. **chezmoi-doctor** - runs `chezmoi doctor` sanity checks and propagates failures
-8. **chezmoi-dry-run** - renders a complete apply without modifying `$HOME`
-9. **chezmoi-secrets-decrypt** - validates encrypted secret decryption and YAML parsing
-10. **secret-template-permissions** - rejects secret-rendering templates without `private_`
+4. **detect-private-key** - rejects committed private-key material
+5. **shellcheck** - lints non-template bash scripts and `configure`
+6. **commitizen** - enforces [Conventional Commits](https://www.conventionalcommits.org/)
+7. **chezmoi-templates** - renders every `.tmpl` file
+8. **chezmoi-doctor** - runs `chezmoi doctor` sanity checks and propagates failures
+9. **chezmoi-dry-run** - renders a complete apply without modifying `$HOME`
+10. **chezmoi-secrets-decrypt** - validates encrypted secret decryption and YAML parsing
+11. **secret-template-permissions** - rejects secret-rendering templates without `private_`
 
 ### Running Manually
 

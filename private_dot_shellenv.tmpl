@@ -26,21 +26,37 @@ export EDITOR=vim
 export VISUAL=vim
 
 {{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
+unset GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN
 {{ with index $secrets "github_mcp_token" -}}
-export GITHUB_TOKEN={{ . | quote }}
-export GHORG_GITHUB_TOKEN={{ . | quote }}
+GITHUB_TOKEN={{ . | quote }}
+GHORG_GITHUB_TOKEN={{ . | quote }}
 {{ end -}}
 export GHORG_CLONE_PROTOCOL="ssh"
 export GHORG_ABSOLUTE_PATH_TO_CLONE_TO="${HOME}/git"
 {{ with index $secrets "grafana_mcp_token" -}}
-export GRAFANA_TOKEN={{ . | quote }}
+GRAFANA_TOKEN={{ . | quote }}
 {{ end -}}
 {{ with index $secrets "argocd_staging_mcp_token" -}}
-export ARGOCD_STAGING_TOKEN={{ . | quote }}
+ARGOCD_STAGING_TOKEN={{ . | quote }}
 {{ end -}}
 {{ with index $secrets "argocd_prod_mcp_token" -}}
-export ARGOCD_PROD_TOKEN={{ . | quote }}
+ARGOCD_PROD_TOKEN={{ . | quote }}
 {{ end -}}
+
+unalias gh ghorg opencode 2>/dev/null || true
+gh() {
+  GITHUB_TOKEN="${GITHUB_TOKEN}" command gh "$@"
+}
+ghorg() {
+  GITHUB_TOKEN="${GITHUB_TOKEN}" GHORG_GITHUB_TOKEN="${GHORG_GITHUB_TOKEN}" command ghorg "$@"
+}
+opencode() {
+  GITHUB_TOKEN="${GITHUB_TOKEN}" \
+    GRAFANA_TOKEN="${GRAFANA_TOKEN}" \
+    ARGOCD_STAGING_TOKEN="${ARGOCD_STAGING_TOKEN}" \
+    ARGOCD_PROD_TOKEN="${ARGOCD_PROD_TOKEN}" \
+    command opencode "$@"
+}
 
 unalias claude 2>/dev/null || true
 claude() {

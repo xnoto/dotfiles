@@ -113,13 +113,52 @@ jobs:
           shellcheck --shell=sh "${rendered_shellenv}"
           RENDERED_SHELLENV="${rendered_shellenv}" sh <<'SH'
           set -eu
+          stub_dir="${RUNNER_TEMP}/shellenv-bin"
+          mkdir -p "${stub_dir}"
+          cat >"${stub_dir}/gh" <<'EOF'
+          #!/bin/sh
+          set -eu
+          test -n "${GITHUB_TOKEN:-}" || exit 1
+          for variable in GHORG_GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN; do
+            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
+          done
+          EOF
+          cat >"${stub_dir}/ghorg" <<'EOF'
+          #!/bin/sh
+          set -eu
+          test -n "${GITHUB_TOKEN:-}" || exit 1
+          test -n "${GHORG_GITHUB_TOKEN:-}" || exit 1
+          for variable in GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN; do
+            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
+          done
+          EOF
+          cat >"${stub_dir}/opencode" <<'EOF'
+          #!/bin/sh
+          set -eu
+          for variable in GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN; do
+            test -n "$(printenv "${variable}")" || exit 1
+          done
+          if printenv GHORG_GITHUB_TOKEN >/dev/null 2>&1; then exit 1; fi
+          EOF
+          chmod +x "${stub_dir}/gh" "${stub_dir}/ghorg" "${stub_dir}/opencode"
+          PATH="${stub_dir}:${PATH}"
           . "${RENDERED_SHELLENV}"
           for variable in GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN; do
-            test -n "$(printenv "${variable}")" || { echo "${variable} not exported" >&2; exit 1; }
+            if printenv "${variable}" >/dev/null 2>&1; then
+              echo "${variable} unexpectedly exported" >&2
+              exit 1
+            fi
+          done
+          gh --version
+          ghorg --version
+          opencode --version
+          for variable in GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN; do
+            if printenv "${variable}" >/dev/null 2>&1; then
+              echo "${variable} exported after wrapper execution" >&2
+              exit 1
+            fi
           done
           SH
 
       - name: Run pre-commit
         run: pre-commit run --all-files
-        env:
-          SKIP: no-commit-to-branch
