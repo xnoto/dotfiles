@@ -51,14 +51,16 @@ ghorg() {
   GITHUB_TOKEN="${GITHUB_TOKEN}" GHORG_GITHUB_TOKEN="${GHORG_GITHUB_TOKEN}" command ghorg "$@"
 }
 opencode() {
-  GITHUB_TOKEN="${GITHUB_TOKEN}" \
-    GRAFANA_TOKEN="${GRAFANA_TOKEN}" \
-    ARGOCD_STAGING_TOKEN="${ARGOCD_STAGING_TOKEN}" \
-    ARGOCD_PROD_TOKEN="${ARGOCD_PROD_TOKEN}" \
-    command opencode "$@"
+  GITHUB_TOKEN="${GITHUB_TOKEN}" command opencode "$@"
 }
 
-unalias claude 2>/dev/null || true
+unalias claude codex 2>/dev/null || true
 claude() {
-  command claude --mcp-config "${HOME}/.claude/mcp.json" "$@"
+  GITHUB_TOKEN="${GITHUB_TOKEN}" command claude \
+    --mcp-config "${HOME}/.claude/mcp.json" \
+    --strict-mcp-config \
+    "$@"
+}
+codex() {
+  GITHUB_TOKEN="${GITHUB_TOKEN}" command codex "$@"
 }

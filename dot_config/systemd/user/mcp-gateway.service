@@ -1,0 +1,14 @@
+[Unit]
+Description=Shared Model Context Protocol gateway
+Documentation=file://%h/.config/mcp-gateway/README.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.config/mcp-gateway/run
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
