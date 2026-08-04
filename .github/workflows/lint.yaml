@@ -135,10 +135,10 @@ jobs:
           cat >"${stub_dir}/opencode" <<'EOF'
           #!/bin/sh
           set -eu
-          for variable in GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN; do
-            test -n "$(printenv "${variable}")" || exit 1
+          test -n "${GITHUB_TOKEN:-}" || exit 1
+          for variable in GHORG_GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN; do
+            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
           done
-          if printenv GHORG_GITHUB_TOKEN >/dev/null 2>&1; then exit 1; fi
           EOF
           chmod +x "${stub_dir}/gh" "${stub_dir}/ghorg" "${stub_dir}/opencode"
           PATH="${stub_dir}:${PATH}"

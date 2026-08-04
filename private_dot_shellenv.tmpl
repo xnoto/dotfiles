@@ -34,12 +34,18 @@ GHORG_GITHUB_TOKEN={{ . | quote }}
 export GHORG_CLONE_PROTOCOL="ssh"
 export GHORG_ABSOLUTE_PATH_TO_CLONE_TO="${HOME}/git"
 {{ with index $secrets "grafana_mcp_token" -}}
+# Consumed by ~/.config/mcp-gateway/bin/grafana after sourcing this file.
+# shellcheck disable=SC2034
 GRAFANA_TOKEN={{ . | quote }}
 {{ end -}}
 {{ with index $secrets "argocd_staging_mcp_token" -}}
+# Consumed by ~/.config/mcp-gateway/bin/argocd after sourcing this file.
+# shellcheck disable=SC2034
 ARGOCD_STAGING_TOKEN={{ . | quote }}
 {{ end -}}
 {{ with index $secrets "argocd_prod_mcp_token" -}}
+# Consumed by ~/.config/mcp-gateway/bin/argocd after sourcing this file.
+# shellcheck disable=SC2034
 ARGOCD_PROD_TOKEN={{ . | quote }}
 {{ end -}}
 
