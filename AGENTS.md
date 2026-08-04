@@ -37,6 +37,8 @@ See [chezmoi reference](https://www.chezmoi.io/reference/source-state-attributes
 
 Files in `.chezmoiignore` are excluded from installation. Treat that file as the authoritative list. It includes repository metadata and tooling, tests, secret-management sources, and platform-specific exclusions. The root `opencode.json` is a project-scoped OpenCode configuration for this checkout and is not installed into `$HOME`.
 
+`~/.config/opencode` and `~/.config/mcp-gateway` are external Git checkouts whose application files are owned by the sibling `opencode-config` and `mcp-gateway` repositories. Keep the MCP gateway's macOS LaunchAgent, Linux systemd user unit, and encrypted secret rendering in this repository because those remain platform-specific chezmoi concerns.
+
 **When adding repo-only files**, add them to `.chezmoiignore` under "Always ignore these".
 
 ## Platform Handling
