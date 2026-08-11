@@ -18,6 +18,7 @@
 # Ignore macOS-specific files on Linux
 {{- if eq .chezmoi.os "linux" }}
 .aerospace.toml
+.local/bin/mtga-launch
 .zprofile
 Library
 Library/**

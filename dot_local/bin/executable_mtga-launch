@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+#
+# Launch MTG Arena right-aligned on the main monitor and reserve a matching
+# AeroSpace gap for the duration of that session only.
+#
+# Neither half of this can live in AeroSpace's config. Gaps are static
+# per-monitor values with no per-app form, and AeroSpace never observes MTGA's
+# Unity window, so on-window-detected never fires for it. The game also rewrites
+# 'Screenmanager Window Position X' back to 0 every time it exits, so the
+# placement cannot be stored in the game's own preferences either.
+#
+# Usage:
+#   mtga-launch              start the game through Steam
+#   mtga-launch %command%    as a Steam launch-options wrapper
+
+set -euo pipefail
+
+STEAM_APP_ID=2141910
+AEROSPACE_CONFIG="${HOME}/.aerospace.toml"
+PROCESS_NAME=MTGA
+WINDOW_TIMEOUT_SECONDS=300
+POLL_SECONDS=2
+
+log() { printf 'mtga-launch: %s\n' "$*" >&2; }
+
+set_gap() {
+    local value=$1
+    if [ ! -f "${AEROSPACE_CONFIG}" ]; then
+        log "no config at ${AEROSPACE_CONFIG}, skipping gap"
+        return 0
+    fi
+    sed -i '' -E \
+        "s|^([[:space:]]*outer\.right[[:space:]]*=[[:space:]]*).*|\1${value}|" \
+        "${AEROSPACE_CONFIG}"
+    aerospace reload-config >/dev/null 2>&1 ||
+        log 'warning: could not reload AeroSpace config'
+}
+
+clear_gap() { set_gap 0; }
+
+# Prints "<origin_x> <width>" for the display holding the menu bar, which is
+# what AeroSpace addresses as monitor.main.
+main_screen_geometry() {
+    osascript -l JavaScript <<'JXA'
+ObjC.import('AppKit');
+const frame = $.NSScreen.screens.objectAtIndex(0).frame;
+`${Math.round(frame.origin.x)} ${Math.round(frame.size.width)}`;
+JXA
+}
+
+game_window_size() {
+    osascript -e "tell application \"System Events\" to tell process \"${PROCESS_NAME}\" to get size of window 1" 2>/dev/null
+}
+
+wait_for_window() {
+    local waited=0 size
+    while [ "${waited}" -lt "${WINDOW_TIMEOUT_SECONDS}" ]; do
+        if size=$(game_window_size) && [ -n "${size}" ]; then
+            printf '%s\n' "${size}"
+            return 0
+        fi
+        sleep "${POLL_SECONDS}"
+        waited=$((waited + POLL_SECONDS))
+    done
+    return 1
+}
+
+place_window() {
+    local size width origin screen_width x
+    if ! size=$(wait_for_window); then
+        log 'game window never appeared, leaving placement and gap alone'
+        return 1
+    fi
+    width=${size%%,*}
+    width=${width// /}
+    read -r origin screen_width < <(main_screen_geometry)
+    x=$((origin + screen_width - width))
+
+    osascript -e "tell application \"System Events\" to tell process \"${PROCESS_NAME}\" to set position of window 1 to {${x}, 0}"
+    set_gap "[{ monitor.main = ${width} }, 0]"
+    log "placed window at x=${x}, reserved ${width}px on the main monitor"
+}
+
+wait_for_exit() {
+    while pgrep -x "${PROCESS_NAME}" >/dev/null 2>&1; do
+        sleep "${POLL_SECONDS}"
+    done
+}
+
+trap clear_gap EXIT INT TERM
+
+if [ "$#" -gt 0 ]; then
+    "$@" &
+    game_pid=$!
+    place_window || true
+    wait "${game_pid}" || true
+else
+    open "steam://rungameid/${STEAM_APP_ID}"
+    place_window || true
+fi
+
+# Steam's %command% can return before the game itself exits, so hold the gap
+# until no MTGA process remains rather than trusting the wrapped command.
+wait_for_exit

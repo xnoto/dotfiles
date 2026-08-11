@@ -57,9 +57,11 @@ persistent-workspaces = ["1", "2", "3"]
 # See: https://nikitabobko.github.io/AeroSpace/commands#mode
 on-mode-changed = []
 
+# AeroSpace does not track MTGA's Unity window, so this rule is inert today and is
+# kept only in case a future build registers a manageable window.
 [[on-window-detected]]
     if.app-id = 'com.wizards.mtga'
-    run = 'move-node-to-workspace 1'
+    run = ['move-node-to-workspace 1', 'layout floating']
 
 [[on-window-detected]]
     if.app-id = 'com.feralinteractive.ageofempires2'
@@ -92,6 +94,8 @@ on-mode-changed = []
     outer.left =       0
     outer.bottom =     0
     outer.top =        0
+    # Gaps are static per-monitor values with no per-app or per-workspace form,
+    # so this stays 0 and mtga-launch rewrites it for one MTG Arena session.
     outer.right =      0
 
 # 'main' binding mode declaration

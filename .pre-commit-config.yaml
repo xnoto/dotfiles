@@ -18,12 +18,12 @@ repos:
     rev: 745eface02aef23e168a8afb6b5737818efbea95  # v0.11.0.1
     hooks:
       - id: shellcheck
-        files: ^(configure|dot_bashrc\.d/)
+        files: ^(configure|dot_bashrc\.d/|dot_local/bin/)
         exclude: \.tmpl$
         types: [file]
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: 6afcd8e9560ddf1b9a5032262a0be26540e85fb3  # v4.16.5
+    rev: 1afca4a81ca3e578ba142fe15a0f8a1a94b894ad  # v4.17.0
     hooks:
       - id: commitizen
 
