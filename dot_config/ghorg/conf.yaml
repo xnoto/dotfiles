@@ -1,0 +1,15 @@
+---
+# Keep every remote branch current while protecting local work during reclones.
+GHORG_FETCH_ALL: true
+GHORG_FETCH_PRUNE: true
+GHORG_PROTECT_LOCAL: true
+
+# Avoid overwhelming GitHub, the network, and local storage during large syncs.
+GHORG_CONCURRENCY: 8
+
+# Repository and branch deletion remain intentionally disabled.
+GHORG_PRUNE: false
+GHORG_PRUNE_UNTOUCHED: false
+GHORG_PRUNE_NO_CONFIRM: false
+GHORG_PRUNE_UNTOUCHED_NO_CONFIRM: false
+GHORG_SKIP_ARCHIVED: false

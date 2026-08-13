@@ -1,0 +1,12 @@
+---
+xnoto:
+  cmd: "ghorg clone xnoto --clone-type=user"
+  description: "Synchronize personal xnoto repositories"
+
+makeitworkcloud:
+  cmd: "ghorg clone makeitworkcloud"
+  description: "Synchronize Make IT Work Cloud repositories"
+
+hatch1fy:
+  cmd: "ghorg clone hatch1fy"
+  description: "Synchronize Hatch repositories"

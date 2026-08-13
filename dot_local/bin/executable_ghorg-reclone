@@ -1,0 +1,43 @@
+#!/bin/sh
+set -eu
+
+shellenv="${HOME}/.shellenv"
+if [ ! -r "${shellenv}" ]; then
+  echo "ghorg reclone: cannot read ${shellenv}" >&2
+  exit 1
+fi
+
+# Load the private token and ghorg wrapper without exporting credentials globally.
+# shellcheck disable=SC1090
+. "${shellenv}"
+
+if ! command -v ghorg >/dev/null 2>&1; then
+  echo "ghorg reclone: ghorg is not installed" >&2
+  exit 1
+fi
+
+if [ "${1:-}" != "--scheduled" ]; then
+  ghorg reclone "$@"
+  exit $?
+fi
+shift
+
+log_dir="${HOME}/Library/Logs"
+log_file="${log_dir}/com.xnoto.ghorg-reclone.log"
+mkdir -p "${log_dir}"
+
+if [ -f "${log_file}" ] && [ "$(wc -c <"${log_file}")" -ge 5242880 ]; then
+  mv -f "${log_file}" "${log_file}.1"
+fi
+
+{
+  echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ') starting ghorg reclone"
+  if ghorg reclone "$@"; then
+    status=0
+  else
+    status=$?
+  fi
+  echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ') finished ghorg reclone (exit ${status})"
+} >>"${log_file}" 2>&1
+
+exit "${status}"
