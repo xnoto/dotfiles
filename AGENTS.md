@@ -89,6 +89,12 @@ pre-commit install --hook-type commit-msg
 pre-commit run --all-files
 ```
 
+For a manual hook refresh, use `pre-commit autoupdate --freeze` so hook
+revisions remain immutable commit SHAs and retain their release comments.
+Refresh `.secrets.baseline` with `detect-secrets scan --baseline
+.secrets.baseline` when those public SHAs change, then stage the baseline before
+running the full suite; the hook intentionally rejects an unstaged baseline.
+
 ## Commit Messages
 
 Must follow [Conventional Commits](https://www.conventionalcommits.org/):
