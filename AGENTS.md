@@ -89,6 +89,15 @@ pre-commit install --hook-type commit-msg
 pre-commit run --all-files
 ```
 
+For a manual hook refresh, use `pre-commit autoupdate --freeze` so hook
+revisions remain immutable commit SHAs and retain their release comments.
+Refresh `.secrets.baseline` with `detect-secrets scan --baseline
+.secrets.baseline` when those public SHAs change, then stage the baseline before
+running the full suite; the hook intentionally rejects an unstaged baseline.
+Before changing the CI Python patch version, verify it exists for every matrix
+platform and architecture in `actions/python-versions`' manifest; newer CPython
+patches may be available on Linux before macOS arm64.
+
 ## Commit Messages
 
 Must follow [Conventional Commits](https://www.conventionalcommits.org/):
