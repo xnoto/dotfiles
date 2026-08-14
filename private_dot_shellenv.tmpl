@@ -26,7 +26,7 @@ export EDITOR=vim
 export VISUAL=vim
 
 {{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
-unset GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN
+unset GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN
 {{ with index $secrets "github_mcp_token" -}}
 GITHUB_TOKEN={{ . | quote }}
 GHORG_GITHUB_TOKEN={{ . | quote }}
@@ -47,6 +47,11 @@ ARGOCD_STAGING_TOKEN={{ . | quote }}
 # Consumed by ~/.config/mcp-gateway/bin/argocd after sourcing this file.
 # shellcheck disable=SC2034
 ARGOCD_PROD_TOKEN={{ . | quote }}
+{{ end -}}
+{{ with index $secrets "argocd_makeitwork_mcp_token" -}}
+# Consumed by ~/.config/mcp-gateway/bin/argocd after sourcing this file.
+# shellcheck disable=SC2034
+ARGOCD_MAKEITWORK_TOKEN={{ . | quote }}
 {{ end -}}
 
 unalias gh ghorg opencode 2>/dev/null || true

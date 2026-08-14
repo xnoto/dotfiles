@@ -60,6 +60,46 @@ Files in `.chezmoiignore` are excluded from installation. Treat that file as the
 - `make check` validates complete rendering and decryption
 - Never commit unencrypted secrets
 
+### Safe encrypted-secret editing
+
+- Never run `chezmoi decrypt` by itself when its stdout is attached to a
+  terminal, log, or agent context. Pipe decrypted data directly into the
+  process that consumes it.
+- Never put a secret in a command-line argument. Pass it through hidden stdin,
+  a dedicated file descriptor, or an environment variable scoped to one child
+  process, then unset the variable.
+- Prefer an in-memory decrypt-transform-encrypt pipeline. Write only encrypted
+  output to a same-directory temporary file and atomically replace the source
+  after validating it:
+
+  ```bash
+  umask 077
+  source=encrypted_secrets.yaml.age
+  tmp=$(mktemp ".${source}.tmp.XXXXXX")
+  trap 'rm -f "$tmp"' EXIT
+
+  chezmoi decrypt "$source" \
+    | SECRET_VALUE="$secret" <transform-command-reading-yaml-from-stdin> \
+    | chezmoi encrypt --output "$tmp"
+
+  chezmoi decrypt "$tmp" \
+    | <validation-command-that-prints-no-values>
+  mv "$tmp" "$source"
+  trap - EXIT
+  unset secret SECRET_VALUE
+  ```
+
+- The transform must preserve unrelated keys and must not print decrypted
+  values. Validation may report key names, counts, types, or pass/fail status
+  only.
+- If plaintext temporary storage is unavoidable, use `umask 077`, keep it
+  outside the repository, and remove it with a trap. An encrypted temporary
+  file is still preferred.
+- If an external system issues a token before encryption succeeds, revoke that
+  token on failure so no unmanaged credential remains active.
+- After replacement, run `make build` and the secret-decryption hooks. Do not
+  use a diff command that renders secret-bearing destination contents.
+
 ## Pre-commit Checks
 
 **Both hooks must be installed:**
