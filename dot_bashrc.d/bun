@@ -1,5 +1,4 @@
 # shellcheck shell=bash
-# bun
 if [ -d "${HOME}/.bun" ]
 then
 	export BUN_INSTALL="${HOME}/.bun"
