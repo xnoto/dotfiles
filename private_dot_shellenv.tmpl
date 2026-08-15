@@ -26,7 +26,7 @@ export EDITOR=vim
 export VISUAL=vim
 
 {{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
-unset GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN
+unset GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN
 {{ with index $secrets "github_mcp_token" -}}
 GITHUB_TOKEN={{ . | quote }}
 GHORG_GITHUB_TOKEN={{ . | quote }}
@@ -37,6 +37,11 @@ export GHORG_ABSOLUTE_PATH_TO_CLONE_TO="${HOME}/git"
 # Consumed by ~/.config/mcp-gateway/bin/grafana after sourcing this file.
 # shellcheck disable=SC2034
 GRAFANA_TOKEN={{ . | quote }}
+{{ end -}}
+{{ with index $secrets "parallel_mcp_api_key" -}}
+# Consumed by ~/.config/mcp-gateway/bin/parallel-search after sourcing this file.
+# shellcheck disable=SC2034
+PARALLEL_API_KEY={{ . | quote }}
 {{ end -}}
 {{ with index $secrets "argocd_staging_mcp_token" -}}
 # Consumed by ~/.config/mcp-gateway/bin/argocd after sourcing this file.
