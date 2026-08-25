@@ -1,6 +1,8 @@
 {{- $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
 [profile makeitwork]
 region = us-west-2
+[profile opencode-bedrock]
+region = us-west-2
 [profile staging]
 sso_session = staging
 sso_account_id = {{ index $secrets "aws_staging_sso_account_id" }}
