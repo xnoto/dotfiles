@@ -26,7 +26,7 @@ export EDITOR=vim
 export VISUAL=vim
 
 {{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
-unset GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN APIFY_TOKEN OPENCODE_WEB_PASSWORD
+unset GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN APIFY_TOKEN OPENCODE_WEB_PASSWORD CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
 {{ with index $secrets "github_mcp_token" -}}
 GITHUB_TOKEN={{ . | quote }}
 GHORG_GITHUB_TOKEN={{ . | quote }}
@@ -66,6 +66,14 @@ APIFY_TOKEN={{ . | quote }}
 {{ with index $secrets "opencode_server_password" -}}
 # Scoped to opencode-web so the credential is not exported to child processes.
 OPENCODE_WEB_PASSWORD={{ . | quote }}
+{{ end -}}
+{{ with index $secrets "cf_access_client_id" -}}
+# Cloudflare Access service token for mcp.makeitwork.cloud; exported so any
+# agent CLI (opencode, claude, codex) can read it without wrapper curation.
+export CF_ACCESS_CLIENT_ID={{ . | quote }}
+{{ end -}}
+{{ with index $secrets "cf_access_client_secret" -}}
+export CF_ACCESS_CLIENT_SECRET={{ . | quote }}
 {{ end -}}
 
 unalias gh ghorg opencode opencode-web 2>/dev/null || true
