@@ -86,6 +86,9 @@ ghorg() {
 opencode() {
   GITHUB_TOKEN="${GITHUB_TOKEN}" command opencode "$@"
 }
+# POSIX sh rejects hyphenated function names, and mcp-gateway wrappers source
+# this file via /bin/sh for credentials; probe for support so they keep working.
+if (eval 'opencode-web() { :; }') 2>/dev/null; then
 opencode-web() {
   if [ -z "${OPENCODE_WEB_PASSWORD:-}" ]; then
     printf '%s\n' 'opencode-web: missing opencode_server_password' >&2
@@ -96,6 +99,7 @@ opencode-web() {
   OPENCODE_SERVER_PASSWORD="${OPENCODE_WEB_PASSWORD}" \
   command opencode attach "https://opencode.makeitwork.cloud" "$@"
 }
+fi
 
 unalias claude codex 2>/dev/null || true
 claude() {
