@@ -3,6 +3,30 @@ export NODE_OPTIONS='--max-old-space-size=6144'
 export OPENCODE_CONFIG_DIR="${HOME}/git/hatch1fy/opencode-toolkit"
 alias opencode-llama='OPENCODE_CONFIG_DIR="$HOME/.config/opencode-llama" opencode'
 
+opencode-web() {
+  local proxy_host='opencode.makeitwork.cloud'
+  local proxy_url='127.0.0.1:4097'
+
+  for cmd in cloudflared opencode; do
+    if ! command -v "${cmd}" >/dev/null 2>&1; then
+      printf '%s: command not found\n' "${cmd}" >&2
+      return 127
+    fi
+  done
+
+  cloudflared access login "https://${proxy_host}" || return
+
+  if ! (echo >"/dev/tcp/${proxy_url%:*}/${proxy_url#*:}") >/dev/null 2>&1; then
+    cloudflared access tcp \
+      --hostname "${proxy_host}" \
+      --url "${proxy_url}" \
+      --log-level error \
+      >"${TMPDIR:-/tmp}/opencode-web-cloudflared.log" 2>&1 &
+  fi
+
+  opencode attach "http://${proxy_url}" --dir /home/opencode "$@"
+}
+
 ###-begin-opencode-completions-###
 #
 # yargs command completion script
