@@ -1,5 +1,7 @@
 set -g set-titles on
 set -g set-titles-string "#W"
+# Allow applications such as OpenCode to set the tmux window name via OSC.
+set -g allow-rename on
 set-window-option -g mouse on
 set-window-option -g mode-keys vi
 set -g extended-keys on
