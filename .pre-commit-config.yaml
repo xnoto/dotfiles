@@ -15,7 +15,7 @@ repos:
         args: ['--baseline', '.secrets.baseline']
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.11.0.1-1
+    rev: v0.11.0.1
     hooks:
       - id: shellcheck
         files: ^(configure|dot_bashrc\.d/|dot_local/bin/)
