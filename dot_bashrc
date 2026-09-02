@@ -1,0 +1,15 @@
+# shellcheck shell=bash
+# Managed by chezmoi. Interactive bash shells source this file;
+# ~/.bash_profile chains login shells to it.
+
+# Skip non-interactive shells, such as remote scp or rsync invocations.
+case $- in
+  *i*) ;;
+  *) return ;;
+esac
+
+for entry in "${HOME}"/.bashrc.d/*; do
+  [ -r "${entry}" ] || continue
+  # shellcheck source=/dev/null
+  . "${entry}"
+done
