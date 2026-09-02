@@ -220,7 +220,12 @@ jobs:
             fi
           done
           SCRIPT
-          for interpreter in zsh bash; do
+          # zsh is the macOS login shell; ubuntu runners do not ship it.
+          case "$(uname -s)" in
+            Darwin) interpreters="zsh bash" ;;
+            *) interpreters="bash" ;;
+          esac
+          for interpreter in ${interpreters}; do
             command -v "${interpreter}" >/dev/null 2>&1 || {
               echo "verify-shellenv: ${interpreter} is required on this runner" >&2
               exit 1
