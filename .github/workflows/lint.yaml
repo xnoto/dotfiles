@@ -166,65 +166,67 @@ jobs:
         run: |
           set -euo pipefail
           rendered_shellenv="${RUNNER_TEMP}/shellenv"
+          verify_script="${RUNNER_TEMP}/verify-shellenv-interpreter.sh"
+          cat >"${verify_script}" <<'SCRIPT'
+          set -eu
+          stub_dir="${RUNNER_TEMP}/shellenv-bin-${interpreter}"
+          mkdir -p "${stub_dir}"
+          cat >"${stub_dir}/gh" <<'STUB'
+          #!/bin/sh
+          set -eu
+          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
+            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
+          done
+          STUB
+          cat >"${stub_dir}/ghorg" <<'STUB'
+          #!/bin/sh
+          set -eu
+          test -n "${GHORG_GITHUB_TOKEN:-}" || exit 1
+          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
+            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
+          done
+          STUB
+          cat >"${stub_dir}/opencode" <<'STUB'
+          #!/bin/sh
+          set -eu
+          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
+            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
+          done
+          STUB
+          chmod +x "${stub_dir}/gh" "${stub_dir}/ghorg" "${stub_dir}/opencode"
+          PATH="${stub_dir}:${PATH}"
+          . "${rendered_shellenv}"
+          command -v opencode-web >/dev/null 2>&1 || {
+            echo "opencode-web helper missing in ${interpreter}" >&2
+            exit 1
+          }
+          command -v opencode_web >/dev/null 2>&1 || {
+            echo "opencode_web helper missing in ${interpreter}" >&2
+            exit 1
+          }
+          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
+            if printenv "${variable}" >/dev/null 2>&1; then
+              echo "${variable} unexpectedly exported" >&2
+              exit 1
+            fi
+          done
+          gh --version
+          ghorg --version
+          opencode --version
+          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
+            if printenv "${variable}" >/dev/null 2>&1; then
+              echo "${variable} exported after wrapper execution" >&2
+              exit 1
+            fi
+          done
+          SCRIPT
           for interpreter in zsh bash; do
             command -v "${interpreter}" >/dev/null 2>&1 || {
               echo "verify-shellenv: ${interpreter} is required on this runner" >&2
               exit 1
             }
             interpreter="${interpreter}" rendered_shellenv="${rendered_shellenv}" \
-              "${interpreter}" <<'SCRIPT'
-            set -eu
-            stub_dir="${RUNNER_TEMP}/shellenv-bin-${interpreter}"
-            mkdir -p "${stub_dir}"
-            cat >"${stub_dir}/gh" <<'STUB'
-            #!/bin/sh
-            set -eu
-            for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-              if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
-            done
-            STUB
-            cat >"${stub_dir}/ghorg" <<'STUB'
-            #!/bin/sh
-            set -eu
-            test -n "${GHORG_GITHUB_TOKEN:-}" || exit 1
-            for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-              if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
-            done
-            STUB
-            cat >"${stub_dir}/opencode" <<'STUB'
-            #!/bin/sh
-            set -eu
-            for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-              if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
-            done
-            STUB
-            chmod +x "${stub_dir}/gh" "${stub_dir}/ghorg" "${stub_dir}/opencode"
-            PATH="${stub_dir}:${PATH}"
-            . "${rendered_shellenv}"
-            command -v opencode-web >/dev/null 2>&1 || {
-              echo "opencode-web helper missing in ${interpreter}" >&2
-              exit 1
-            }
-            command -v opencode_web >/dev/null 2>&1 || {
-              echo "opencode_web helper missing in ${interpreter}" >&2
-              exit 1
-            }
-            for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-              if printenv "${variable}" >/dev/null 2>&1; then
-                echo "${variable} unexpectedly exported" >&2
-                exit 1
-              fi
-            done
-            gh --version
-            ghorg --version
-            opencode --version
-            for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-              if printenv "${variable}" >/dev/null 2>&1; then
-                echo "${variable} exported after wrapper execution" >&2
-                exit 1
-              fi
-            done
-            SCRIPT
+              "${interpreter}" "${verify_script}"
           done
 
       - name: Run pre-commit
