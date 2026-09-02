@@ -26,9 +26,11 @@ export EDITOR=vim
 export VISUAL=vim
 
 {{ $secrets := fromYaml (include "encrypted_secrets.yaml.age" | decrypt) -}}
-unset GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN APIFY_TOKEN OPENCODE_WEB_PASSWORD CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
+unset GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN APIFY_TOKEN OPENCODE_WEB_PASSWORD CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
 {{ with index $secrets "github_mcp_token" -}}
-GITHUB_TOKEN={{ . | quote }}
+# Consumed by ~/.config/mcp-gateway/bin/github after sourcing this file.
+# shellcheck disable=SC2034
+GITHUB_MCP_TOKEN={{ . | quote }}
 GHORG_GITHUB_TOKEN={{ . | quote }}
 {{ end -}}
 export GHORG_CLONE_PROTOCOL="ssh"
@@ -77,14 +79,8 @@ export CF_ACCESS_CLIENT_SECRET={{ . | quote }}
 {{ end -}}
 
 unalias gh ghorg opencode opencode-web 2>/dev/null || true
-gh() {
-  GITHUB_TOKEN="${GITHUB_TOKEN}" command gh "$@"
-}
 ghorg() {
-  GITHUB_TOKEN="${GITHUB_TOKEN}" GHORG_GITHUB_TOKEN="${GHORG_GITHUB_TOKEN}" command ghorg "$@"
-}
-opencode() {
-  GITHUB_TOKEN="${GITHUB_TOKEN}" command opencode "$@"
+  GHORG_GITHUB_TOKEN="${GHORG_GITHUB_TOKEN}" command ghorg "$@"
 }
 opencode_web() {
   if [ -z "${OPENCODE_WEB_PASSWORD:-}" ]; then
@@ -105,11 +101,8 @@ fi
 
 unalias claude codex 2>/dev/null || true
 claude() {
-  GITHUB_TOKEN="${GITHUB_TOKEN}" command claude \
+  command claude \
     --mcp-config "${HOME}/.claude/mcp.json" \
     --strict-mcp-config \
     "$@"
-}
-codex() {
-  GITHUB_TOKEN="${GITHUB_TOKEN}" command codex "$@"
 }

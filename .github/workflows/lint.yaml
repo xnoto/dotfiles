@@ -118,32 +118,29 @@ jobs:
           cat >"${stub_dir}/gh" <<'EOF'
           #!/bin/sh
           set -eu
-          test -n "${GITHUB_TOKEN:-}" || exit 1
-          for variable in GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
+          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
             if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
           done
           EOF
           cat >"${stub_dir}/ghorg" <<'EOF'
           #!/bin/sh
           set -eu
-          test -n "${GITHUB_TOKEN:-}" || exit 1
           test -n "${GHORG_GITHUB_TOKEN:-}" || exit 1
-          for variable in GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
+          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
             if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
           done
           EOF
           cat >"${stub_dir}/opencode" <<'EOF'
           #!/bin/sh
           set -eu
-          test -n "${GITHUB_TOKEN:-}" || exit 1
-          for variable in GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
+          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
             if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
           done
           EOF
           chmod +x "${stub_dir}/gh" "${stub_dir}/ghorg" "${stub_dir}/opencode"
           PATH="${stub_dir}:${PATH}"
           . "${RENDERED_SHELLENV}"
-          for variable in GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
+          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
             if printenv "${variable}" >/dev/null 2>&1; then
               echo "${variable} unexpectedly exported" >&2
               exit 1
@@ -152,7 +149,7 @@ jobs:
           gh --version
           ghorg --version
           opencode --version
-          for variable in GITHUB_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
+          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
             if printenv "${variable}" >/dev/null 2>&1; then
               echo "${variable} exported after wrapper execution" >&2
               exit 1
