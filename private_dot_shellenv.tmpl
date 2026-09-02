@@ -80,6 +80,7 @@ export CF_ACCESS_CLIENT_SECRET={{ . | quote }}
 
 unalias gh ghorg opencode opencode-web 2>/dev/null || true
 ghorg() {
+  : "${GHORG_GITHUB_TOKEN:?ghorg requires the github_mcp_token secret}"
   GHORG_GITHUB_TOKEN="${GHORG_GITHUB_TOKEN}" command ghorg "$@"
 }
 opencode_web() {

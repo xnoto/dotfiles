@@ -36,18 +36,18 @@ chezmoi diff --source=/path/to/this/repo
 | Target | Behavior |
 |--------|----------|
 | `make` / `make build` | Render an apply as a dry-run without modifying `$HOME` |
-| `make setup` / `make init` | Securely install the age identity, then initialize chezmoi |
+| `make setup` / `make init` | Securely install a missing identity, then initialize chezmoi |
 | `make install` | Apply dotfiles to `$HOME` |
 | `make check` / `make test` | Run pre-commit hooks and verify age decryption |
 
 ## Platform handling
 
 - **macOS**: Uses `.zprofile`, AeroSpace config; excludes `.bashrc.d/` and i3
-- **Linux**: Uses `.bashrc.d/`, i3 config; excludes `.zprofile` and AeroSpace
+- **Linux**: Uses `.bash_profile` → `.bashrc` → `.bashrc.d/`, i3 config; excludes `.zprofile` and AeroSpace
 
 ## Secrets
 
-Secrets are encrypted with age. The encrypted file `encrypted_secrets.yaml.age` is decrypted at apply time using the platform-specific key path configured in `.chezmoi.toml.tmpl`. `make setup` creates a missing identity atomically with owner-only permissions. Secret-rendering targets use chezmoi's `private_` attribute. Shell tokens remain unexported and are injected only by the `gh`, `ghorg`, and `opencode` wrappers. Templates reference secrets via `include "encrypted_secrets.yaml.age" | decrypt`.
+Secrets are encrypted with age. The encrypted file `encrypted_secrets.yaml.age` is decrypted at apply time using the platform-specific key path configured in `.chezmoi.toml.tmpl`. `make setup` creates a missing identity atomically with owner-only permissions. Secret-rendering targets use chezmoi's `private_` attribute. Shell tokens remain unexported and are injected only into wrappers that require them (`ghorg` for its clone token, `opencode_web` for the web password); `GITHUB_MCP_TOKEN` is consumed by the mcp-gateway `bin/github` launcher after it sources `~/.shellenv`. Templates reference secrets via `include "encrypted_secrets.yaml.age" | decrypt`.
 
 ## AWS profiles
 
@@ -65,7 +65,7 @@ Pre-commit hooks handle:
 
 ## CI
 
-GitHub Actions runs the full pre-commit suite on Linux and macOS using an ephemeral age identity and non-production fixture secrets. CI actions, tools, and external archives are pinned to immutable versions or commits; external archive checksums are recorded in `.chezmoiexternal.toml.tmpl`.
+GitHub Actions runs the full pre-commit suite on Linux and macOS using an ephemeral age identity and non-production fixture secrets. The rendered `~/.shellenv` is additionally sourced under `sh`, `zsh`, and `bash` to keep it portable across the macOS and Fedora shells. CI actions, tools, and external archives are pinned to immutable versions or commits; external archive checksums are recorded in `.chezmoiexternal.toml.tmpl`.
 
 ## Credits
 
@@ -79,8 +79,8 @@ This repository includes the following third-party fonts:
   - License: [CC0 1.0 Universal (Public Domain Dedication)](https://creativecommons.org/publicdomain/zero/1.0/)
   - Description: A TrueType bitmap font with programming ligatures, based on the classic Fixedsys typeface.
 
-- **The Ultimate Oldschool PC Font Pack** (`Px437_IBM_VGA_*.ttf`)
+- **The Ultimate Oldschool PC Font Pack** (`Px437_IBM_VGA_*`)
   - Source: https://int10h.org/oldschool-pc-fonts/
   - Author: VileR
   - License: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
-  - Description: Pixel-perfect reproductions of classic IBM VGA text mode fonts from DOS-era PCs.
+  - Description: Pixel-perfect reproductions of classic IBM VGA text mode fonts from DOS-era.

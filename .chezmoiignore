@@ -2,6 +2,8 @@
 {{- if eq .chezmoi.os "darwin" }}
 .config/i3
 .config/i3/**
+.bash_profile
+.bashrc
 .bashrc.d
 .bashrc.d/**
 .local/share/fonts

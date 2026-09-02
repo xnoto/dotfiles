@@ -18,7 +18,7 @@ repos:
     rev: v0.11.0.1
     hooks:
       - id: shellcheck
-        files: ^(configure|dot_bashrc\.d/|dot_local/bin/)
+        files: ^(configure|dot_bashrc|dot_bash_profile|dot_bashrc\.d/|dot_local/bin/)
         exclude: \.tmpl$
         types: [file]
 
