@@ -20,3 +20,6 @@
 # Chezmoi-related (don't commit local state)
 .chezmoi.toml
 secrets.yaml
+
+# Generated Node compile cache
+node-compile-cache/
