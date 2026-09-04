@@ -10,6 +10,27 @@ This is a [chezmoi](https://www.chezmoi.io/) dotfiles repository. Chezmoi manage
 
 **This repository is NOT applied directly** - chezmoi processes files before installation.
 
+## Agent operating rules
+
+- Follow the active server's tool-routing and safety instructions. This file is
+  repository guidance; it must not override the runtime's GitHub, filesystem,
+  web, or shell policy or require unavailable tools.
+- Treat every target as exactly one of: chezmoi-rendered source, external
+  checkout/archive, package or binary, service definition, or runtime state.
+  Identify its canonical owner before changing it, and do not claim package
+  installation, service health, or workstation behavior from source validation.
+- Do not run `make install`, `make apply`, `chezmoi apply`, package managers,
+  or service-management commands. Those are owner-run workstation operations.
+- Before changing a shell entrypoint or `~/.shellenv`, map all consumers:
+  interactive/login Bash, login zsh, and POSIX wrapper scripts. Keep
+  OS-native initialization in the native shell entrypoint; `~/.shellenv` must
+  remain portable POSIX shell.
+- Before changing an external mapping, establish its producer, update policy,
+  pin/integrity model, and affected consumer. Do not assume an external clone
+  or archive is a package installation.
+- When adding or changing a secret consumer, update the non-production fixture
+  and its scope assertions. Never print or persist decrypted values.
+
 ## Makefile Targets
 
 | Target | Behavior |
@@ -39,13 +60,15 @@ Files in `.chezmoiignore` are excluded from installation. Treat that file as the
 
 `~/.config/opencode` and `~/.config/mcp-gateway` are external Git checkouts whose application files are owned by the sibling `opencode-config` and `mcp-gateway` repositories. Keep the MCP gateway's macOS LaunchAgent, Linux systemd user unit, and encrypted secret rendering in this repository because those remain platform-specific chezmoi concerns.
 
-**When adding repo-only files**, add them to `.chezmoiignore` under "Always ignore these".
+**When adding repo-only files**, add them to `.chezmoiignore` under "Always ignore these" and to `.gitignore` when they are generated local state.
 
 ## Platform Handling
 
 - `.chezmoiignore` uses Go templates to conditionally exclude files
 - `.chezmoi.os` is `darwin` (macOS) or `linux`
 - Templates (`.tmpl` files) can use `{{ if eq .chezmoi.os "darwin" }}` conditionals
+- Platform-specific paths, package locations, and system initialization must be
+  guarded by the platform and capability that provide them.
 
 ## Secrets
 
@@ -55,7 +78,9 @@ Files in `.chezmoiignore` are excluded from installation. Treat that file as the
 - `make setup` reads a missing identity from hidden stdin and installs it atomically with owner-only permissions
 - Templates access secrets via `include "encrypted_secrets.yaml.age" | decrypt`
 - Secret-rendering templates must use a `private_` source-state attribute
-- Shell tokens remain unexported and are injected only into command wrappers that require them
+- Shell tokens remain unexported and are injected only into command wrappers
+  that require them, except the Cloudflare Access client ID and secret. Those
+  are deliberately exported because multiple agent CLIs consume them.
 - CI replaces the encrypted payload with non-production fixture secrets and runs the same rendering checks
 - `make check` validates complete rendering and decryption
 - Never commit unencrypted secrets
@@ -159,63 +184,6 @@ GitHub Actions (`.github/workflows/lint.yaml`) runs pre-commit on:
 - Pull requests to `main`
 - Pushes to `main`
 
-The job runs on Linux and macOS with pinned tooling and disposable fixture secrets.
-
-# context-mode — MANDATORY routing rules
-
-You have context-mode MCP tools available. These rules are NOT optional — they protect your context window from flooding. A single unrouted command can dump 56 KB into context and waste the entire session.
-
-## BLOCKED commands — do NOT attempt these
-
-### curl / wget — BLOCKED
-Any shell command containing `curl` or `wget` will be intercepted and blocked by the context-mode plugin. Do NOT retry.
-Instead use:
-- `context-mode_ctx_fetch_and_index(url, source)` to fetch and index web pages
-- `context-mode_ctx_execute(language: "javascript", code: "const r = await fetch(...)")` to run HTTP calls in sandbox
-
-### Inline HTTP — BLOCKED
-Any shell command containing `fetch('http`, `requests.get(`, `requests.post(`, `http.get(`, or `http.request(` will be intercepted and blocked. Do NOT retry with shell.
-Instead use:
-- `context-mode_ctx_execute(language, code)` to run HTTP calls in sandbox — only stdout enters context
-
-### Direct web fetching — BLOCKED
-Do NOT use any direct URL fetching tool. Use the sandbox equivalent.
-Instead use:
-- `context-mode_ctx_fetch_and_index(url, source)` then `context-mode_ctx_search(queries)` to query the indexed content
-
-## REDIRECTED tools — use sandbox equivalents
-
-### Shell (>20 lines output)
-Shell is ONLY for: `git`, `mkdir`, `rm`, `mv`, `cd`, `ls`, `npm install`, `pip install`, and other short-output commands.
-For everything else, use:
-- `context-mode_ctx_batch_execute(commands, queries)` — run multiple commands + search in ONE call
-- `context-mode_ctx_execute(language: "shell", code: "...")` — run in sandbox, only stdout enters context
-
-### File reading (for analysis)
-If you are reading a file to **edit** it → reading is correct (edit needs content in context).
-If you are reading to **analyze, explore, or summarize** → use `context-mode_ctx_execute_file(path, language, code)` instead. Only your printed summary enters context.
-
-### grep / search (large results)
-Search results can flood context. Use `context-mode_ctx_execute(language: "shell", code: "grep ...")` to run searches in sandbox. Only your printed summary enters context.
-
-## Tool selection hierarchy
-
-1. **GATHER**: `context-mode_ctx_batch_execute(commands, queries)` — Primary tool. Runs all commands, auto-indexes output, returns search results. ONE call replaces 30+ individual calls.
-2. **FOLLOW-UP**: `context-mode_ctx_search(queries: ["q1", "q2", ...])` — Query indexed content. Pass ALL questions as array in ONE call.
-3. **PROCESSING**: `context-mode_ctx_execute(language, code)` | `context-mode_ctx_execute_file(path, language, code)` — Sandbox execution. Only stdout enters context.
-4. **WEB**: `context-mode_ctx_fetch_and_index(url, source)` then `context-mode_ctx_search(queries)` — Fetch, chunk, index, query. Raw HTML never enters context.
-5. **INDEX**: `context-mode_ctx_index(content, source)` — Store content in FTS5 knowledge base for later search.
-
-## Output constraints
-
-- Keep responses under 500 words.
-- Write artifacts (code, configs, PRDs) to FILES — never return them as inline text. Return only: file path + 1-line description.
-- When indexing content, use descriptive source labels so others can `search(source: "label")` later.
-
-## ctx commands
-
-| Command | Action |
-|---------|--------|
-| `ctx stats` | Call the `stats` MCP tool and display the full output verbatim |
-| `ctx doctor` | Call the `doctor` MCP tool, run the returned shell command, display as checklist |
-| `ctx upgrade` | Call the `upgrade` MCP tool, run the returned shell command, display as checklist |
+The job runs source validation on Linux and macOS with pinned tooling and
+disposable fixture secrets. It does not apply dotfiles to a persistent host,
+install packages, start services, or functionally verify external tools.
