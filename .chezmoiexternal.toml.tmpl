@@ -28,11 +28,12 @@
     url = "https://github.com/alacritty/alacritty-theme"
     pull.args = ["--ff-only", "--autostash"]
 
+# Update this commit only after reviewing xnoto/claude-config; the archive is
+# the canonical producer for the rendered ~/.claude target.
 [".claude"]
     type = "archive"
-    url = "https://codeload.github.com/xnoto/claude-config/tar.gz/refs/heads/main"
-    refreshPeriod = "0s"
-    exact = false
+    url = "https://codeload.github.com/xnoto/claude-config/tar.gz/a5266f5c2b3ab7a3f57d1b4ad87ba881a9706943"
+    exact = true
     stripComponents = 1
     exclude = ["**/LICENSE"]
 
