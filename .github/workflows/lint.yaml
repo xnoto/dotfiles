@@ -111,116 +111,14 @@ jobs:
           rendered_shellenv="${RUNNER_TEMP}/shellenv"
           chezmoi execute-template --source . <private_dot_shellenv.tmpl >"${rendered_shellenv}"
           shellcheck --shell=sh "${rendered_shellenv}"
-          RENDERED_SHELLENV="${rendered_shellenv}" sh <<'SH'
-          set -eu
-          stub_dir="${RUNNER_TEMP}/shellenv-bin"
-          mkdir -p "${stub_dir}"
-          cat >"${stub_dir}/gh" <<'EOF'
-          #!/bin/sh
-          set -eu
-          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
-          done
-          EOF
-          cat >"${stub_dir}/ghorg" <<'EOF'
-          #!/bin/sh
-          set -eu
-          test -n "${GHORG_GITHUB_TOKEN:-}" || exit 1
-          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
-          done
-          EOF
-          cat >"${stub_dir}/opencode" <<'EOF'
-          #!/bin/sh
-          set -eu
-          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
-          done
-          EOF
-          chmod +x "${stub_dir}/gh" "${stub_dir}/ghorg" "${stub_dir}/opencode"
-          PATH="${stub_dir}:${PATH}"
-          . "${RENDERED_SHELLENV}"
-          if command -v opencode-web >/dev/null 2>&1; then
-            echo "opencode-web unexpectedly defined in POSIX sh" >&2
-            exit 1
-          fi
-          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-            if printenv "${variable}" >/dev/null 2>&1; then
-              echo "${variable} unexpectedly exported" >&2
-              exit 1
-            fi
-          done
-          gh --version
-          ghorg --version
-          opencode --version
-          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-            if printenv "${variable}" >/dev/null 2>&1; then
-              echo "${variable} exported after wrapper execution" >&2
-              exit 1
-            fi
-          done
-          SH
+          sh tests/verify_shellenv.sh sh "${rendered_shellenv}"
 
       - name: Verify rendered shellenv in zsh and bash
         shell: bash
         run: |
           set -euo pipefail
           rendered_shellenv="${RUNNER_TEMP}/shellenv"
-          verify_script="${RUNNER_TEMP}/verify-shellenv-interpreter.sh"
-          cat >"${verify_script}" <<'SCRIPT'
-          set -eu
-          stub_dir="${RUNNER_TEMP}/shellenv-bin-${interpreter}"
-          mkdir -p "${stub_dir}"
-          cat >"${stub_dir}/gh" <<'STUB'
-          #!/bin/sh
-          set -eu
-          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
-          done
-          STUB
-          cat >"${stub_dir}/ghorg" <<'STUB'
-          #!/bin/sh
-          set -eu
-          test -n "${GHORG_GITHUB_TOKEN:-}" || exit 1
-          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
-          done
-          STUB
-          cat >"${stub_dir}/opencode" <<'STUB'
-          #!/bin/sh
-          set -eu
-          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-            if printenv "${variable}" >/dev/null 2>&1; then exit 1; fi
-          done
-          STUB
-          chmod +x "${stub_dir}/gh" "${stub_dir}/ghorg" "${stub_dir}/opencode"
-          PATH="${stub_dir}:${PATH}"
-          . "${rendered_shellenv}"
-          command -v opencode-web >/dev/null 2>&1 || {
-            echo "opencode-web helper missing in ${interpreter}" >&2
-            exit 1
-          }
-          command -v opencode_web >/dev/null 2>&1 || {
-            echo "opencode_web helper missing in ${interpreter}" >&2
-            exit 1
-          }
-          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-            if printenv "${variable}" >/dev/null 2>&1; then
-              echo "${variable} unexpectedly exported" >&2
-              exit 1
-            fi
-          done
-          gh --version
-          ghorg --version
-          opencode --version
-          for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN; do
-            if printenv "${variable}" >/dev/null 2>&1; then
-              echo "${variable} exported after wrapper execution" >&2
-              exit 1
-            fi
-          done
-          SCRIPT
-          # zsh is the macOS login shell; ubuntu runners do not ship it.
+          chezmoi execute-template --source . <private_dot_shellenv.tmpl >"${rendered_shellenv}"
           case "$(uname -s)" in
             Darwin) interpreters="zsh bash" ;;
             *) interpreters="bash" ;;
@@ -230,8 +128,7 @@ jobs:
               echo "verify-shellenv: ${interpreter} is required on this runner" >&2
               exit 1
             }
-            interpreter="${interpreter}" rendered_shellenv="${rendered_shellenv}" \
-              "${interpreter}" "${verify_script}"
+            sh tests/verify_shellenv.sh "${interpreter}" "${rendered_shellenv}"
           done
 
       - name: Run pre-commit
