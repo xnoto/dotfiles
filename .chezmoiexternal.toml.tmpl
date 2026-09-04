@@ -29,10 +29,13 @@
     pull.args = ["--ff-only", "--autostash"]
 
 # Update this commit only after reviewing xnoto/claude-config; the archive is
-# the canonical producer for the rendered ~/.claude target.
+# the canonical producer for the rendered ~/.claude target. When bumping the
+# pinned commit, recompute the checksum from the new codeload archive bytes.
 [".claude"]
     type = "archive"
     url = "https://codeload.github.com/xnoto/claude-config/tar.gz/a5266f5c2b3ab7a3f57d1b4ad87ba881a9706943"
+    # Public integrity digest, not a credential.
+    checksum.sha256 = "73bbbaebdb82996698fa9223352d4479ca997db8c4d9422927363bffe9e1d24d"  # pragma: allowlist secret
     exact = true
     stripComponents = 1
     exclude = ["**/LICENSE"]
