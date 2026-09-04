@@ -8,6 +8,13 @@ case $- in
   *) return ;;
 esac
 
+# Restore Fedora's system-wide interactive setup, including the default prompt.
+# This belongs in Bash's entrypoint rather than ~/.shellenv, which is POSIX-sourced.
+if [ -r /etc/bashrc ]; then
+  # shellcheck source=/dev/null
+  . /etc/bashrc
+fi
+
 for entry in "${HOME}"/.bashrc.d/*; do
   [ -r "${entry}" ] || continue
   # shellcheck source=/dev/null
