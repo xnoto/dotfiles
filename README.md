@@ -47,7 +47,7 @@ chezmoi diff --source=/path/to/this/repo
 
 ## Secrets
 
-Secrets are encrypted with age. The encrypted file `encrypted_secrets.yaml.age` is decrypted at apply time using the platform-specific key path configured in `.chezmoi.toml.tmpl`. `make setup` creates a missing identity atomically with owner-only permissions. Secret-rendering targets use chezmoi's `private_` attribute. Shell tokens remain unexported and are injected only into wrappers that require them (`ghorg` for its clone token, `opencode_web` for the web password); `GITHUB_MCP_TOKEN` is consumed by the mcp-gateway `bin/github` launcher after it sources `~/.shellenv`. Templates reference secrets via `include "encrypted_secrets.yaml.age" | decrypt`.
+Secrets are encrypted with age. The encrypted file `encrypted_secrets.yaml.age` is decrypted at apply time using the platform-specific key path configured in `.chezmoi.toml.tmpl`. `make setup` creates a missing identity atomically with owner-only permissions. Secret-rendering targets use the `private_` attribute. Most shell tokens remain unexported and are injected only into their command wrappers: `ghorg` receives its clone token and `opencode_web` receives its web password. `GITHUB_MCP_TOKEN` is consumed by the mcp-gateway `bin/github` launcher after it sources `~/.shellenv`. The Cloudflare Access client ID and secret are an intentional exception: they are exported so supported agent CLIs can use them. Templates reference secrets via `include "encrypted_secrets.yaml.age" | decrypt`.
 
 ## AWS profiles
 
@@ -65,7 +65,7 @@ Pre-commit hooks handle:
 
 ## CI
 
-GitHub Actions runs the full pre-commit suite on Linux and macOS using an ephemeral age identity and non-production fixture secrets. The rendered `~/.shellenv` is additionally sourced under `sh`, `zsh`, and `bash` to keep it portable across the macOS and Fedora shells. CI actions, tools, and external archives are pinned to immutable versions or commits; external archive checksums are recorded in `.chezmoiexternal.toml.tmpl`.
+GitHub Actions runs the full pre-commit suite on Linux and macOS using an ephemeral age identity and non-production fixture secrets. The rendered `~/.shellenv` is additionally sourced under `sh`, `zsh`, and `bash` to keep it portable across the macOS and Fedora shells. CI actions and validation tools are pinned to immutable versions or commits. External archives and checkouts have their own update and integrity policies in `.chezmoiexternal.toml.tmpl`; inspect that mapping before relying on an external source as pinned or checksummed.
 
 ## Credits
 
