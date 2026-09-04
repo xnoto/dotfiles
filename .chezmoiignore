@@ -47,3 +47,5 @@ secrets/
 .sops.yaml
 secrets.yaml
 .DS_Store
+node-compile-cache
+node-compile-cache/**
