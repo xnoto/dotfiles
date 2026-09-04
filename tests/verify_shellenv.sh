@@ -54,6 +54,7 @@ case "${interpreter}" in
   *) mode=interactive ;;
 esac
 
+# shellcheck disable=SC2016
 "${interpreter}" -c '
 set -eu
 stub_dir="$1"
