@@ -37,6 +37,10 @@ cat >"${stub_dir}/opencode" <<'STUB'
 #!/bin/sh
 set -eu
 if [ "${1:-}" = "attach" ]; then
+  [ "${2:-}" = "https://opencode.makeitwork.cloud" ]
+  [ "${3:-}" = "--dir" ]
+  [ "${4:-}" = "/home/opencode" ]
+  [ "${5:-}" = "--version" ]
   [ "${OPENCODE_SERVER_USERNAME:-}" = "opencode" ]
   test -n "${OPENCODE_SERVER_PASSWORD:-}"
 fi
