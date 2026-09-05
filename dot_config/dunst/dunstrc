@@ -1,0 +1,20 @@
+# Linux desktop notifications. Dunst does not inherit i3 client or bar colors.
+[global]
+    frame_width = 2
+    separator_color = "frame"
+
+# Match the red i3 palette while preserving Dunst defaults for unspecified options.
+[urgency_low]
+    background = "#4C4C4C"
+    foreground = "#FFFFFF"
+    frame_color = "#8C8C8C"
+
+[urgency_normal]
+    background = "#770000"
+    foreground = "#FFFFFF"
+    frame_color = "#FA8383"
+
+[urgency_critical]
+    background = "#DB3279"
+    foreground = "#FFFFFF"
+    frame_color = "#EC69A0"
