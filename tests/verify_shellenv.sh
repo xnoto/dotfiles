@@ -54,15 +54,17 @@ STUB
 cat >"${stub_dir}/curl" <<'STUB'
 #!/bin/sh
 set -eu
-# opencode_list passes basic-auth credentials through a stdin config, never argv.
+# opencode_list passes basic-auth credentials through a stdin config, never
+# argv or the child environment, and disables curlrc with -q.
 config="$(cat)"
-case "${config}" in
-  *'user = "opencode:'*'"'*) ;;
-  *)
-    echo "curl stub: missing stdin credential config" >&2
-    exit 1
-    ;;
-esac
+if [ "${config}" != 'user = "opencode:fixture-opencode-password"' ]; then
+  echo "curl stub: unexpected credential config" >&2
+  exit 1
+fi
+if printenv OPENCODE_WEB_PASSWORD >/dev/null 2>&1; then
+  echo "curl stub: OPENCODE_WEB_PASSWORD present in environment" >&2
+  exit 1
+fi
 for arg in "$@"; do
   case "${arg}" in
     *fixture-opencode-password*)
@@ -71,11 +73,12 @@ for arg in "$@"; do
       ;;
   esac
 done
-[ "${1:-}" = "-fsS" ]
-[ "${2:-}" = "--config" ]
-[ "${3:-}" = "-" ]
-[ "${4:-}" = "https://opencode.makeitwork.cloud/session" ]
-printf '%s\n' '[{"id":"ses_fixture","title":"Fixture session","directory":"/home/opencode","time":{"created":0,"updated":0}}]'
+[ "${1:-}" = "-q" ]
+[ "${2:-}" = "-fsS" ]
+[ "${3:-}" = "--config" ]
+[ "${4:-}" = "-" ]
+[ "${5:-}" = "https://opencode.makeitwork.cloud/session" ]
+printf '%s\n' '[{"id":"ses_old","title":"Old session","directory":"/home/opencode","time":{"created":0,"updated":1000}},{"id":"ses_new","title":"New session","directory":"/home/opencode","time":{"created":0,"updated":2000}}]'
 STUB
 
 chmod +x "${stub_dir}/gh" "${stub_dir}/ghorg" "${stub_dir}/opencode" "${stub_dir}/curl"
@@ -144,12 +147,21 @@ ghorg version
 opencode_web --version
 list_output="$(opencode_list)"
 case "${list_output}" in
-  *ses_fixture*) ;;
+  *ses_new*) ;;
   *)
     echo "opencode_list output missing fixture session" >&2
     exit 1
     ;;
 esac
+if command -v jq >/dev/null 2>&1; then
+  case "${list_output}" in
+    ses_new*ses_old*) ;;
+    *)
+      echo "opencode_list output is not newest-first" >&2
+      exit 1
+      ;;
+  esac
+fi
 assert_unexported
 assert_cf_exported
 ' verify-shellenv "${stub_dir}" "${rendered_shellenv}" "${mode}"

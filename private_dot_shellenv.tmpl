@@ -94,30 +94,44 @@ opencode_web() {
   OPENCODE_SERVER_PASSWORD="${OPENCODE_WEB_PASSWORD}" \
   command opencode attach "https://opencode.makeitwork.cloud" --dir /home/opencode "$@"
 }
-opencode_list() {
+opencode_list() (
+  # Subshell body: isolates variables and keeps xtrace from disclosing the
+  # credential without changing the caller's trace state.
+  set +x
+
   if [ -z "${OPENCODE_WEB_PASSWORD:-}" ]; then
     printf '%s\n' 'opencode-list: missing opencode_server_password' >&2
-    return 1
+    exit 1
+  fi
+  if [ "$#" -ne 0 ]; then
+    printf '%s\n' 'opencode-list: arguments are not supported' >&2
+    exit 2
   fi
 
-  # Optional base URL override; defaults to the shared web server.
-  base_url="${1:-https://opencode.makeitwork.cloud}"
+  # Escape curl-config metacharacters in the credential.
+  password="$(printf '%s\n' "${OPENCODE_WEB_PASSWORD}" \
+    | command sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')"
+  unset OPENCODE_WEB_PASSWORD
 
-  # Basic-auth credentials travel through a stdin config, never argv.
-  response="$(printf 'user = "opencode:%s"\n' "${OPENCODE_WEB_PASSWORD}" \
-    | command curl -fsS --config - "${base_url%/}/session")" || {
-    printf '%s\n' "opencode-list: failed to query ${base_url}" >&2
-    return 1
-  }
+  # -q disables curlrc so user configuration cannot log or redirect the
+  # credential; credentials travel through a stdin config, never argv.
+  if ! response="$(printf 'user = "opencode:%s"\n' "${password}" \
+    | command curl -q -fsS --config - "https://opencode.makeitwork.cloud/session")"; then
+    printf '%s\n' 'opencode-list: failed to query https://opencode.makeitwork.cloud' >&2
+    exit 1
+  fi
+  unset password
 
   if command -v jq >/dev/null 2>&1; then
     printf '%s\n' "${response}" | command jq -r '
       sort_by(.time.updated) | reverse | .[] |
-      [.id, (.time.updated / 1000 | todate), .title] | @tsv'
+      [(.id | gsub("[\\p{Cc}\\p{Cf}]"; "")),
+       (.time.updated / 1000 | todate),
+       (.title | gsub("[\\p{Cc}\\p{Cf}]"; ""))] | @tsv'
   else
     printf '%s\n' "${response}"
   fi
-}
+)
 # Define the hyphenated interactive commands only in shells that support them.
 # POSIX sh gateway wrappers retain the portable underscore functions.
 if (eval 'opencode-web() { :; }') 2>/dev/null; then
