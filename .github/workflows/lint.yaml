@@ -107,7 +107,7 @@ jobs:
       - name: Verify rendered shellenv
         shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           rendered_shellenv="${RUNNER_TEMP}/shellenv"
           chezmoi execute-template --source . <private_dot_shellenv.tmpl >"${rendered_shellenv}"
           shellcheck --shell=sh "${rendered_shellenv}"
