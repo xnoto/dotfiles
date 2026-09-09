@@ -51,7 +51,37 @@ for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN P
 done
 STUB
 
-chmod +x "${stub_dir}/gh" "${stub_dir}/ghorg" "${stub_dir}/opencode"
+cat >"${stub_dir}/curl" <<'STUB'
+#!/bin/sh
+set -eu
+# opencode_list passes basic-auth credentials through a stdin config, never
+# argv or the child environment, and disables curlrc with -q.
+config="$(cat)"
+if [ "${config}" != 'user = "opencode:fixture-opencode-password"' ]; then
+  echo "curl stub: unexpected credential config" >&2
+  exit 1
+fi
+if printenv OPENCODE_WEB_PASSWORD >/dev/null 2>&1; then
+  echo "curl stub: OPENCODE_WEB_PASSWORD present in environment" >&2
+  exit 1
+fi
+for arg in "$@"; do
+  case "${arg}" in
+    *fixture-opencode-password*)
+      echo "curl stub: credential leaked into argv" >&2
+      exit 1
+      ;;
+  esac
+done
+[ "${1:-}" = "-q" ]
+[ "${2:-}" = "-fsS" ]
+[ "${3:-}" = "--config" ]
+[ "${4:-}" = "-" ]
+[ "${5:-}" = "https://opencode.makeitwork.cloud/session" ]
+printf '%s\n' '[{"id":"ses_old","title":"Old session","directory":"/home/opencode","time":{"created":0,"updated":1000}},{"id":"ses_new","title":"New session","directory":"/home/opencode","time":{"created":0,"updated":2000}}]'
+STUB
+
+chmod +x "${stub_dir}/gh" "${stub_dir}/ghorg" "${stub_dir}/opencode" "${stub_dir}/curl"
 
 case "${interpreter}" in
   sh) mode=posix ;;
@@ -89,24 +119,49 @@ assert_unexported
 assert_cf_exported
 
 if [ "${mode}" = posix ]; then
-  if command -v opencode-web >/dev/null 2>&1; then
-    echo "opencode-web unexpectedly defined in POSIX sh" >&2
-    exit 1
-  fi
+  for helper in opencode-web opencode-list opencode-list-sessions; do
+    if command -v "${helper}" >/dev/null 2>&1; then
+      echo "${helper} unexpectedly defined in POSIX sh" >&2
+      exit 1
+    fi
+  done
 else
-  command -v opencode-web >/dev/null 2>&1 || {
-    echo "opencode-web helper missing" >&2
-    exit 1
-  }
+  for helper in opencode-web opencode-list opencode-list-sessions; do
+    command -v "${helper}" >/dev/null 2>&1 || {
+      echo "${helper} helper missing" >&2
+      exit 1
+    }
+  done
 fi
 command -v opencode_web >/dev/null 2>&1 || {
   echo "opencode_web helper missing" >&2
+  exit 1
+}
+command -v opencode_list >/dev/null 2>&1 || {
+  echo "opencode_list helper missing" >&2
   exit 1
 }
 
 gh --version
 ghorg version
 opencode_web --version
+list_output="$(opencode_list)"
+case "${list_output}" in
+  *ses_new*) ;;
+  *)
+    echo "opencode_list output missing fixture session" >&2
+    exit 1
+    ;;
+esac
+if command -v jq >/dev/null 2>&1; then
+  case "${list_output}" in
+    ses_new*ses_old*) ;;
+    *)
+      echo "opencode_list output is not newest-first" >&2
+      exit 1
+      ;;
+  esac
+fi
 assert_unexported
 assert_cf_exported
 ' verify-shellenv "${stub_dir}" "${rendered_shellenv}" "${mode}"
