@@ -42,6 +42,28 @@ This is a [chezmoi](https://www.chezmoi.io/) dotfiles repository. Chezmoi manage
 
 `make` is safe and non-destructive. `make install` writes to `$HOME`.
 
+## The `~/.claude` external
+
+`~/.claude` is owned by Claude Code, not by this repository. The `[".claude"]`
+archive external in `.chezmoiexternal.toml.tmpl` *contributes* a few files to
+that directory; alongside them Claude Code keeps unmanaged runtime state
+(`projects/`, `sessions/`, `plugins/`, `history.jsonl`, `backups/`,
+`file-history/`, `shell-snapshots/`).
+
+Never set `exact = true` on that mapping. chezmoi treats an exact directory as
+authoritative and removes every entry not present in the archive, which
+destroys all of the above on the next `chezmoi apply`.
+
+The mapping tracks `claude-config`'s main branch and carries no commit pin and
+no `checksum.sha256`. Do not add either. GitHub does not guarantee byte-stable
+auto-generated archives, so a digest fails spuriously on a `git archive`
+compression change, and no other external here carries one. Deploying a
+`claude-config` change is: push there, then `make install`.
+
+Do not add `settings.local.json` to the archive either. Claude Code writes
+standing permission grants to `~/.claude/settings.local.json` in any session
+rooted at `$HOME`; shipping that path from the archive reverts them.
+
 ## Naming Conventions
 
 | Source Name | Installed As |

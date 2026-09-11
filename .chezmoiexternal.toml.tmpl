@@ -28,18 +28,34 @@
     url = "https://github.com/alacritty/alacritty-theme"
     pull.args = ["--ff-only", "--autostash"]
 
-# Update this commit only after reviewing xnoto/claude-config; the archive is
-# the canonical producer for the rendered ~/.claude target. When bumping the
-# pinned commit, recompute the checksum from the new codeload archive bytes.
-# Merge claude-config before this mapping so the pinned commit remains reachable.
+# xnoto/claude-config is the canonical producer for the rendered ~/.claude
+# target. This mapping tracks its main branch: push there and the next
+# `make install` deploys it. No commit pin and no checksum, matching how the
+# alacritty-theme and tpm externals track their upstreams.
+#
+# chezmoi caches archive externals, and with `refreshPeriod` unset it never
+# re-downloads unless forced. The Makefile's build and install targets already
+# pass `-R`; `refreshPeriod` bounds the staleness of a bare `chezmoi apply` or
+# `chezmoi update` that does not.
+#
+# `exact` must stay off. Claude Code owns ~/.claude and keeps unmanaged runtime
+# state there (projects/, sessions/, plugins/, history.jsonl, backups/,
+# file-history/, shell-snapshots/). An exact directory makes `chezmoi apply`
+# remove every entry not present in this archive, which would destroy all of it.
+# This mapping contributes files to ~/.claude; it does not own it.
 [".claude"]
     type = "archive"
-    url = "https://codeload.github.com/xnoto/claude-config/tar.gz/5dbca0fc186edd9b80c8e989514903584e698d9b"
-    # Public integrity digest, not a credential.
-    checksum.sha256 = "09ed2d58c96087cb33b3f5ed299d129886ac6850a5b42e0c86118ccd1d282dc3"  # pragma: allowlist secret
-    exact = true
+    url = "https://codeload.github.com/xnoto/claude-config/tar.gz/refs/heads/main"
+    refreshPeriod = "168h"
     stripComponents = 1
-    exclude = ["**/LICENSE"]
+    # Repository tooling; it has no meaning inside ~/.claude.
+    exclude = [
+        "**/LICENSE",
+        "**/README.md",
+        "**/.gitignore",
+        "**/.pre-commit-config.yaml",
+        "**/.secrets.baseline",
+    ]
 
 {{- if eq .chezmoi.os "linux" }}
 
