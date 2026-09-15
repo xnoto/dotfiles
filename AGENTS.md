@@ -64,6 +64,35 @@ Do not add `settings.local.json` to the archive either. Claude Code writes
 standing permission grants to `~/.claude/settings.local.json` in any session
 rooted at `$HOME`; shipping that path from the archive reverts them.
 
+## The `git-repo` externals
+
+`~/.codex`, `~/.config/opencode`, `~/.config/opencode-llama`,
+`~/.config/mcp-gateway`, and the alacritty theme directories are `git-repo`
+externals: real clones that chezmoi keeps current with `git pull`. Because no
+`refreshPeriod` is set and both `make build` and `make install` pass `-R`, that
+pull runs on every `make`.
+
+These directories are live application state, so the same ownership rule as
+`~/.claude` applies in a different direction: the app writes to files this
+repository pulls over. Codex appends `projects.<path>.trust_level` to
+`~/.codex/config.toml`, and the `cursor-acp` plugin expands
+`provider.cursor-acp.models` inside `~/.config/opencode/opencode.json`. Both
+land in *tracked* files, so the checkout is dirty by design.
+
+Pull arguments are therefore `["--ff-only"]` and must not include
+`--autostash`. With autostash, a pull whose upstream commits touch the same
+region the app rewrote stashes the local edit, fast-forwards, and then hits a
+conflict on the pop, leaving `<<<<<<<` markers in a live config file. The
+application then fails to start. Without autostash the pull simply aborts, the
+working config is untouched, and the divergence is reconciled by hand. For a
+file an application parses at startup, a failed update is always better than a
+corrupted one.
+
+When a runtime write to a tracked file becomes permanent, fix it at the
+producer: seed the value upstream so the app has nothing to write (as
+`codex-config` does for `[projects]`), or untrack and ignore the file in the
+sibling repository. Do not silence it here.
+
 ## Naming Conventions
 
 | Source Name | Installed As |
