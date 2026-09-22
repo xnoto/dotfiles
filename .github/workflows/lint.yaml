@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  CHEZMOI_VERSION: 2.72.0
+  CHEZMOI_VERSION: 2.72.2
   PRE_COMMIT_VERSION: 4.6.2
   SHELLCHECK_PY_VERSION: 0.11.0.1
 
@@ -37,15 +37,15 @@ jobs:
           case "$(uname -s)-$(uname -m)" in
             Linux-x86_64)
               asset="chezmoi_${CHEZMOI_VERSION}_linux_amd64.tar.gz"
-              checksum="0d6665b96c527d57fdc562bf19e808f80f48c2d977062c03e3e65c6b09eafbce"
+              checksum="a2be1b8bcdf06c6f173e070bb3ddbcc52c50478fe9b57f6e6c63d15c7cff4f03"
               ;;
             Darwin-x86_64)
               asset="chezmoi_${CHEZMOI_VERSION}_darwin_amd64.tar.gz"
-              checksum="41be255eacf46b1b333591b4ddc7e90e2aa98ccb8dce47609b8284b856841652"
+              checksum="08ad1ba33a73e68f7657ee226f72b5d800b5a947954b06e185e8591bd32b0063"
               ;;
             Darwin-arm64)
               asset="chezmoi_${CHEZMOI_VERSION}_darwin_arm64.tar.gz"
-              checksum="53e576042afba703290bbc320e64d0b6bdf1082a8fb9f0d13b97e68a6e6c059f"
+              checksum="2b0c7e57f3f2da44628fa9f6863b9bd41f0935cfd2416228aa9df6daab6690f5"
               ;;
             *)
               echo "Unsupported runner architecture: $(uname -s)-$(uname -m)" >&2
