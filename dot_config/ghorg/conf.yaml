@@ -1,4 +1,10 @@
 ---
+# `ghorg reclone` spawns a separate `ghorg clone` per reclone.yaml entry and, by
+# default, unsets every GHORG_* variable before doing so, leaving the clone with
+# no token, the https protocol and ~/ghorg as its destination. Pass the parent's
+# environment through instead, so the clone inherits what ~/.shellenv exports.
+GHORG_RECLONE_ENV_CONFIG_ONLY: true
+
 # Keep every remote branch current while protecting local work during reclones.
 GHORG_FETCH_ALL: true
 GHORG_FETCH_PRUNE: true
