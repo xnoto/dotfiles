@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -9,13 +9,13 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0
+    rev: 68e8b45440415753fff70a312ece8da92ba85b4a  # frozen: v1.5.0
     hooks:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.11.0.1-1
+    rev: a6564f5d57444e123433a5c9af733e3975c77229  # frozen: v0.11.0.1-1
     hooks:
       - id: shellcheck
         files: ^(configure|dot_bashrc|dot_bash_profile|dot_bashrc\.d/|dot_local/bin/|tests/verify_shellenv\.sh)$
@@ -23,7 +23,7 @@ repos:
         types: [file]
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.19.0
+    rev: 054e4a278e11abb9b8df6c103fa64f544d468ee5  # frozen: v4.19.0
     hooks:
       - id: commitizen
 
