@@ -13,9 +13,8 @@ GHORG_PROTECT_LOCAL: true
 # Avoid overwhelming GitHub, the network, and local storage during large syncs.
 GHORG_CONCURRENCY: 8
 
-# Repository and branch deletion remain intentionally disabled.
-GHORG_PRUNE: false
+GHORG_PRUNE: true
+GHORG_PRUNE_NO_CONFIRM: true
+GHORG_SKIP_ARCHIVED: true
 GHORG_PRUNE_UNTOUCHED: false
-GHORG_PRUNE_NO_CONFIRM: false
 GHORG_PRUNE_UNTOUCHED_NO_CONFIRM: false
-GHORG_SKIP_ARCHIVED: false
