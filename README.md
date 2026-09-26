@@ -57,7 +57,7 @@ the desktop, and `Ctrl+Print` copies an area to the clipboard.
 
 ## Secrets
 
-Secrets are encrypted with age. The encrypted file `encrypted_secrets.yaml.age` is decrypted at apply time using the platform-specific key path configured in `.chezmoi.toml.tmpl`. `make setup` creates a missing identity atomically with owner-only permissions. Secret-rendering targets use the `private_` attribute. Most shell tokens remain unexported and are injected only into command wrappers: `ghorg` receives its clone token and `opencode_web` receives its web password. `GITHUB_MCP_TOKEN` is consumed by the mcp-gateway `bin/github` launcher after it sources `~/.shellenv`. The Cloudflare Access client ID and secret are an intentional exception: they are exported so supported agent CLIs can use them. Templates reference secrets via `include "encrypted_secrets.yaml.age" | decrypt`.
+Secrets are encrypted with age. The encrypted file `encrypted_secrets.yaml.age` is decrypted at apply time using the platform-specific key path configured in `.chezmoi.toml.tmpl`. `make setup` creates a missing identity atomically with owner-only permissions. Secret-rendering targets use the `private_` attribute. Most shell tokens remain unexported and are injected only into their command wrappers: `ghorg` receives its clone token and `opencode_web` receives its web password. `GITHUB_MCP_TOKEN` is consumed by the mcp-gateway `bin/github` launcher after it sources `~/.shellenv`. The Cloudflare Access client ID and secret are an intentional exception: they are exported so supported agent CLIs can use them. Templates reference secrets via `include "encrypted_secrets.yaml.age" | decrypt`.
 
 ## AWS profiles
 
