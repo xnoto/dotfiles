@@ -9,6 +9,9 @@ Managed with [chezmoi](https://www.chezmoi.io/).
 - age key at one of:
   - **Linux**: `~/.config/sops/age/keys.txt`
   - **macOS**: `~/Library/Application Support/sops/age/keys.txt`
+- Fedora i3 desktop packages: `maim`, `slop`, `xclip`,
+  `google-noto-sans-vf-fonts`, `google-noto-sans-mono-vf-fonts`, and
+  `google-noto-serif-vf-fonts`
 
 ## Usage
 
@@ -44,6 +47,13 @@ chezmoi diff --source=/path/to/this/repo
 
 - **macOS**: Uses `.zprofile`, AeroSpace config; excludes `.bashrc.d/` and i3
 - **Linux**: Uses `.bash_profile` → `.bashrc` → `.bashrc.d/`, i3 config; excludes `.zprofile` and AeroSpace
+
+The Linux i3 session loads Xft settings directly from `~/.Xresources`, so font
+rendering does not depend on a GNOME or KDE settings daemon. GTK 2/3/4, i3,
+Dunst, dmenu, and fontconfig use the same Noto family; Alacritty keeps its
+purpose-built terminal font configuration. Screenshot
+bindings use X11-native `maim`: `Print` selects an area, `Shift+Print` captures
+the desktop, and `Ctrl+Print` copies an area to the clipboard.
 
 ## Secrets
 

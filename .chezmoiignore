@@ -14,7 +14,12 @@
 .config/systemd/**
 .config/fontconfig
 .config/fontconfig/**
+.config/gtk-3.0
+.config/gtk-3.0/**
+.config/gtk-4.0
+.config/gtk-4.0/**
 .icons
+.gtkrc-2.0
 .Xresources
 .xinitrc
 {{- end }}

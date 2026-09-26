@@ -1,3 +1,9 @@
-xrdb ~/.Xresources
 export SSH_AUTH_SOCK=${HOME}/.bitwarden-ssh-agent.sock
+
+# ~/.xinitrc replaces the distribution default, so load Xft DPI and rendering
+# settings here instead of relying on a desktop settings daemon.
+if command -v xrdb >/dev/null 2>&1 && [ -r "${HOME}/.Xresources" ]; then
+  xrdb -merge "${HOME}/.Xresources"
+fi
+
 exec i3

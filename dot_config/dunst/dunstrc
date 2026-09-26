@@ -2,6 +2,7 @@
 [global]
     frame_width = 2
     separator_color = "frame"
+    font = Noto Sans 11
 
 # Match the red i3 palette while preserving Dunst defaults for unspecified options.
 [urgency_low]
