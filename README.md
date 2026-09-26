@@ -10,8 +10,8 @@ Managed with [chezmoi](https://www.chezmoi.io/).
   - **Linux**: `~/.config/sops/age/keys.txt`
   - **macOS**: `~/Library/Application Support/sops/age/keys.txt`
 - Fedora i3 desktop packages: `maim`, `slop`, `xclip`,
-  `google-noto-sans-vf-fonts`, `google-noto-sans-mono-vf-fonts`, and
-  `google-noto-serif-vf-fonts`
+  `liberation-sans-fonts`, `liberation-mono-fonts`, and
+  `liberation-serif-fonts`
 
 ## Usage
 
@@ -50,7 +50,7 @@ chezmoi diff --source=/path/to/this/repo
 
 The Linux i3 session loads Xft settings directly from `~/.Xresources`, so font
 rendering does not depend on a GNOME or KDE settings daemon. GTK 2/3/4, Dunst,
-and fontconfig use the Noto family, while i3, dmenu, and Alacritty keep their
+and fontconfig use the Liberation family, while i3, dmenu, and Alacritty keep their
 purpose-built bitmap font configuration. Screenshot
 bindings use X11-native `maim`: `Print` selects an area, `Shift+Print` captures
 the desktop, and `Ctrl+Print` copies an area to the clipboard.
