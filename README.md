@@ -49,9 +49,9 @@ chezmoi diff --source=/path/to/this/repo
 - **Linux**: Uses `.bash_profile` → `.bashrc` → `.bashrc.d/`, i3 config; excludes `.zprofile` and AeroSpace
 
 The Linux i3 session loads Xft settings directly from `~/.Xresources`, so font
-rendering does not depend on a GNOME or KDE settings daemon. GTK 2/3/4, i3,
-Dunst, dmenu, and fontconfig use the same Noto family; Alacritty keeps its
-purpose-built terminal font configuration. Screenshot
+rendering does not depend on a GNOME or KDE settings daemon. GTK 2/3/4, Dunst,
+and fontconfig use the Noto family, while i3, dmenu, and Alacritty keep their
+purpose-built bitmap font configuration. Screenshot
 bindings use X11-native `maim`: `Print` selects an area, `Shift+Print` captures
 the desktop, and `Ctrl+Print` copies an area to the clipboard.
 
