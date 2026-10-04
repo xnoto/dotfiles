@@ -9,7 +9,7 @@ Managed with [chezmoi](https://www.chezmoi.io/).
 - age key at one of:
   - **Linux**: `~/.config/sops/age/keys.txt`
   - **macOS**: `~/Library/Application Support/sops/age/keys.txt`
-- Fedora i3 desktop packages: `maim`, `slop`, `xclip`,
+- Fedora i3 desktop packages: `maim`, `slop`, `xclip`, `copyq`,
   `liberation-sans-fonts`, `liberation-mono-fonts`, and
   `liberation-serif-fonts`
 
@@ -53,7 +53,8 @@ rendering does not depend on a GNOME or KDE settings daemon. GTK 2/3/4 and
 fontconfig use the Liberation family, while i3, dmenu, Alacritty, and Dunst
 keep their purpose-built bitmap font configuration. Screenshot
 bindings use X11-native `maim`: `Print` selects an area, `Shift+Print` captures
-the desktop, and `Ctrl+Print` copies an area to the clipboard.
+the desktop, and `Ctrl+Print` copies an area to the clipboard. CopyQ starts with
+i3 and provides clipboard history through its clickable system tray icon.
 
 ## Secrets
 

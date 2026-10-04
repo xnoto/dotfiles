@@ -33,6 +33,9 @@ exec --no-startup-id /usr/bin/xfce4-power-manager
 exec --no-startup-id /usr/bin/gnome-keyring-daemon --start --components=secrets,ssh,pkcs11
 exec --no-startup-id /usr/bin/dbus-update-activation-environment --all
 
+# Clipboard history available from the i3bar system tray.
+exec --no-startup-id copyq
+
 # xss-lock grabs a logind suspend inhibit lock and will use i3lock to lock the
 # screen before suspend. Use loginctl lock-session to lock your screen.
 exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
