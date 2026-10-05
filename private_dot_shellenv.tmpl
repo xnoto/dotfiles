@@ -90,9 +90,10 @@ opencode_web() {
     return 1
   fi
 
-  OPENCODE_SERVER_USERNAME="opencode" \
-  OPENCODE_SERVER_PASSWORD="${OPENCODE_WEB_PASSWORD}" \
-  command opencode attach "https://opencode.makeitwork.cloud" --dir /home/opencode "$@"
+  # OpenCode v2 removed `attach --dir`; the client sends its local working
+  # directory as the remote project.
+  OPENCODE_PASSWORD="${OPENCODE_WEB_PASSWORD}" \
+  command opencode --server "https://opencode.makeitwork.cloud" "$@"
 }
 opencode_list() (
   # Subshell body: isolates variables and keeps xtrace from disclosing the
@@ -113,24 +114,37 @@ opencode_list() (
     | command sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')"
   unset OPENCODE_WEB_PASSWORD
 
-  # -q disables curlrc so user configuration cannot log or redirect the
-  # credential; credentials travel through a stdin config, never argv.
-  if ! response="$(printf 'user = "opencode:%s"\n' "${password}" \
-    | command curl -q -fsS --config - "https://opencode.makeitwork.cloud/session")"; then
-    printf '%s\n' 'opencode-list: failed to query https://opencode.makeitwork.cloud' >&2
-    exit 1
-  fi
+  # The v2 API pages sessions as {"data": [...], "cursor": {"next": ...}}.
+  # Without jq the cursor cannot be followed, so print the first page raw.
+  url="https://opencode.makeitwork.cloud/api/session?limit=200"
+  response=""
+  while :; do
+    # -q disables curlrc so user configuration cannot log or redirect the
+    # credential; credentials travel through a stdin config, never argv.
+    if ! page="$(printf 'user = "opencode:%s"\n' "${password}" \
+      | command curl -q -fsS --config - "${url}")"; then
+      printf '%s\n' 'opencode-list: failed to query https://opencode.makeitwork.cloud' >&2
+      exit 1
+    fi
+    if ! command -v jq >/dev/null 2>&1; then
+      printf '%s\n' "${page}"
+      exit 0
+    fi
+    response="${response}${page}
+"
+    cursor="$(printf '%s\n' "${page}" \
+      | command jq -r 'if (.data | length) > 0 then .cursor.next // empty else empty end | @uri')"
+    [ -n "${cursor}" ] || break
+    url="https://opencode.makeitwork.cloud/api/session?limit=200&cursor=${cursor}"
+  done
   unset password
 
-  if command -v jq >/dev/null 2>&1; then
-    printf '%s\n' "${response}" | command jq -r '
+  printf '%s' "${response}" | command jq -rs '
+      [.[].data[] | select(.parentID == null)] |
       sort_by(.time.updated) | reverse | .[] |
       [(.id | gsub("[\\p{Cc}\\p{Cf}]"; "")),
        (.time.updated / 1000 | todate),
        (.title | gsub("[\\p{Cc}\\p{Cf}]"; ""))] | @tsv'
-  else
-    printf '%s\n' "${response}"
-  fi
 )
 # Define the hyphenated interactive commands only in shells that support them.
 # POSIX sh gateway wrappers retain the portable underscore functions.

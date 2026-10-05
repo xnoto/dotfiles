@@ -36,13 +36,10 @@ STUB
 cat >"${stub_dir}/opencode" <<'STUB'
 #!/bin/sh
 set -eu
-if [ "${1:-}" = "attach" ]; then
+if [ "${1:-}" = "--server" ]; then
   [ "${2:-}" = "https://opencode.makeitwork.cloud" ]
-  [ "${3:-}" = "--dir" ]
-  [ "${4:-}" = "/home/opencode" ]
-  [ "${5:-}" = "--version" ]
-  [ "${OPENCODE_SERVER_USERNAME:-}" = "opencode" ]
-  test -n "${OPENCODE_SERVER_PASSWORD:-}"
+  [ "${3:-}" = "--version" ]
+  test -n "${OPENCODE_PASSWORD:-}"
 fi
 for variable in GITHUB_TOKEN GITHUB_MCP_TOKEN GHORG_GITHUB_TOKEN GRAFANA_TOKEN PARALLEL_API_KEY ARGOCD_STAGING_TOKEN ARGOCD_PROD_TOKEN ARGOCD_MAKEITWORK_TOKEN APIFY_TOKEN OPENCODE_WEB_PASSWORD; do
   if printenv "${variable}" >/dev/null 2>&1; then
@@ -77,8 +74,19 @@ done
 [ "${2:-}" = "-fsS" ]
 [ "${3:-}" = "--config" ]
 [ "${4:-}" = "-" ]
-[ "${5:-}" = "https://opencode.makeitwork.cloud/session" ]
-printf '%s\n' '[{"id":"ses_old","title":"Old session","directory":"/home/opencode","time":{"created":0,"updated":1000}},{"id":"ses_new","title":"New session","directory":"/home/opencode","time":{"created":0,"updated":2000}}]'
+# The v2 API pages results; follow the cursor until a page has no next.
+case "${5:-}" in
+  "https://opencode.makeitwork.cloud/api/session?limit=200")
+    printf '%s\n' '{"data":[{"id":"ses_old","parentID":null,"title":"Old session","time":{"created":0,"updated":1000}},{"id":"ses_child","parentID":"ses_old","title":"Child session","time":{"created":0,"updated":3000}}],"cursor":{"previous":null,"next":"page+2"}}'
+    ;;
+  "https://opencode.makeitwork.cloud/api/session?limit=200&cursor=page%2B2")
+    printf '%s\n' '{"data":[{"id":"ses_new","parentID":null,"title":"New session","time":{"created":0,"updated":2000}}],"cursor":{"previous":"page+1","next":null}}'
+    ;;
+  *)
+    echo "curl stub: unexpected URL ${5:-}" >&2
+    exit 1
+    ;;
+esac
 STUB
 
 chmod +x "${stub_dir}/gh" "${stub_dir}/ghorg" "${stub_dir}/opencode" "${stub_dir}/curl"
@@ -158,6 +166,12 @@ if command -v jq >/dev/null 2>&1; then
     ses_new*ses_old*) ;;
     *)
       echo "opencode_list output is not newest-first" >&2
+      exit 1
+      ;;
+  esac
+  case "${list_output}" in
+    *ses_child*)
+      echo "opencode_list output includes a child session" >&2
       exit 1
       ;;
   esac
