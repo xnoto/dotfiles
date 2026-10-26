@@ -23,7 +23,7 @@ repos:
         types: [file]
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: 054e4a278e11abb9b8df6c103fa64f544d468ee5  # frozen: v4.19.0
+    rev: 0c47f153e36705819b4d819508fa913d979c1ccc  # frozen: v4.19.3
     hooks:
       - id: commitizen
 

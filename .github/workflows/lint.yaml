@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 env:
-  CHEZMOI_VERSION: 2.72.2
-  PRE_COMMIT_VERSION: 4.6.2
+  CHEZMOI_VERSION: 2.73.3
+  PRE_COMMIT_VERSION: 4.7.0
   SHELLCHECK_PY_VERSION: 0.11.0.1
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12.10"
 
@@ -37,15 +37,15 @@ jobs:
           case "$(uname -s)-$(uname -m)" in
             Linux-x86_64)
               asset="chezmoi_${CHEZMOI_VERSION}_linux_amd64.tar.gz"
-              checksum="a2be1b8bcdf06c6f173e070bb3ddbcc52c50478fe9b57f6e6c63d15c7cff4f03"
+              checksum="6e5827598cbfc02d132b04f95b5ea10efb5b79230e2a4a0e52df4af144a8ee9f"
               ;;
             Darwin-x86_64)
               asset="chezmoi_${CHEZMOI_VERSION}_darwin_amd64.tar.gz"
-              checksum="08ad1ba33a73e68f7657ee226f72b5d800b5a947954b06e185e8591bd32b0063"
+              checksum="d865487d6669243c948ee5542087bd95f4ad4ecb5a1311b85cf19f557694fe03"
               ;;
             Darwin-arm64)
               asset="chezmoi_${CHEZMOI_VERSION}_darwin_arm64.tar.gz"
-              checksum="2b0c7e57f3f2da44628fa9f6863b9bd41f0935cfd2416228aa9df6daab6690f5"
+              checksum="ec2d0005f369c912ee9891a26c30d65dc0eda51708f06948e5f7a43db69e1aa7"
               ;;
             *)
               echo "Unsupported runner architecture: $(uname -s)-$(uname -m)" >&2
